@@ -1,98 +1,95 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import axios from "axios";
+import React, { useState } from "react";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const [result, setResult] =
+    useState<string>("버튼을 눌러 통신을 확인하세요.");
+  const [loading, setLoading] = useState<boolean>(false);
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  // .env 파일에 작성한 IP 주소를 가져옵니다.
+  const serverIp = process.env.EXPO_PUBLIC_SERVER_IP;
+  const API_URL = `http://${serverIp}:8080/api/test/connect`;
+
+  const handleTestCall = async () => {
+    setLoading(true);
+    try {
+      // 자바 서버로 요청 전송
+      const response = await axios.get(API_URL);
+      // 자바에서 합쳐서 보내준 (Java + Python) 메시지 출력
+      setResult(response.data);
+    } catch (error) {
+      console.error(error);
+      setResult(
+        "❌ 서버 연결 실패!\n1. 서버 가동 여부\n2. 같은 와이파이인지 확인\n3. CORS 설정을 확인하세요.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.header}>✅ React Native 서버 정상 연결됨</Text>
+      <Text style={styles.ipText}>접속 서버: {serverIp}</Text>
+
+      <View style={styles.resultBox}>
+        {loading ? (
+          <ActivityIndicator size="large" color="#4A90E2" />
+        ) : (
+          <Text style={styles.message}>{result}</Text>
+        )}
+      </View>
+
+      <TouchableOpacity style={styles.button} onPress={handleTestCall}>
+        <Text style={styles.buttonText}>
+          서버(springboot - fastapi) 요청 보내기
+        </Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  header: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#2ecc71",
+    marginBottom: 5,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  ipText: { fontSize: 12, color: "#999", marginBottom: 30 },
+  resultBox: {
+    width: "100%",
+    minHeight: 180,
+    padding: 20,
+    backgroundColor: "#f8f9fa",
+    borderRadius: 15,
+    justifyContent: "center",
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#eee",
   },
+  message: { fontSize: 16, textAlign: "center", color: "#333", lineHeight: 24 },
+  button: {
+    backgroundColor: "#4A90E2",
+    padding: 18,
+    borderRadius: 12,
+    width: "100%",
+    alignItems: "center",
+    elevation: 2,
+  },
+  buttonText: { color: "white", fontWeight: "bold", fontSize: 16 },
 });
