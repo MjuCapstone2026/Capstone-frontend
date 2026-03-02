@@ -1,50 +1,60 @@
-# Welcome to your Expo app 👋
+# 🚀 MJU Travel AI Agent - Frontend
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+명지대학교 자연캠퍼스 가이드 및 여행 일정을 생성해주는 AI 에이전트 서비스의 프론트엔드 레포지토리입니다.  
+**React Native (Expo)**를 기반으로 구축되었습니다.
 
-## Get started
+---
 
-1. Install dependencies
+## 🛠️ 개발 환경 및 스택
 
-   ```bash
-   npm install
-   ```
+- **Framework**: Expo (SDK 54)
+- **Language**: TypeScript
+- **State/UI**: React Native Reanimated, Safe Area Context
+- **Navigation**: Expo Router (File-based Routing)
+- **HTTP Client**: Axios
+- **Map**: React Native Maps
 
-2. Start the app
+---
 
-   ```bash
-   npx expo start
-   ```
+## ⚙️ 초기 설정 (Getting Started)
 
-In the output, you'll find options to open the app in a
+팀원들은 프로젝트를 `git clone` 한 후 아래 순서에 따라 환경을 구축하세요.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### 1. 의존성 설치
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+프로젝트 루트 폴더에서 아래 명령어를 실행합니다. (package-lock.json에 명시된 버전을 그대로 설치합니다.)
 
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### 2. 환경 변수 설정 (.env)
 
-## Learn more
+루트 폴더에 .env 파일을 생성하고 본인의 PC IP 주소를 입력합니다. (네트워크 환경이 바뀌면 수정 필요)
 
-To learn more about developing your project with Expo, look at the following resources:
+```bash
+# 본인 PC의 IPv4 주소 (ipconfig로 확인)
+EXPO_PUBLIC_SERVER_IP=192.168.0.xx
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### 3. 모바일 기기 연결
 
-## Join the community
+- 1.스마트폰에 Expo Go 앱을 설치합니다. (iOS/Android)
 
-Join our community of developers creating universal apps.
+- 2.PC와 스마트폰이 동일한 Wi-Fi에 연결되어 있어야 합니다.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## 🏃 실행 방법 (Scripts)
+
+### 서버 가동
+
+```bash
+npx expo start
+```
+
+터미널에 QR 코드가 나타나면, 폰의 카메라나 Expo Go 앱을 통해 스캔하여 앱을 실행합니다.
+
+### 주요 명령어
+
+- npm run android: 안드로이드 에뮬레이터에서 실행
+- npm run ios: iOS 시뮬레이터에서 실행
+- npm run web: 웹 브라우저에서 실행
