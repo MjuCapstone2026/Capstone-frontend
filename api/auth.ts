@@ -9,3 +9,9 @@ export const registerUser = (token: string) =>
     {},
     { headers: { Authorization: `Bearer ${token}` } }
   );
+
+// JWT 인증 테스트: Spring → FastAPI 토큰 전달 확인
+export const authConnect = (token: string) =>
+  apiClient.get('/api/test/auth-connect', {
+    headers: { Authorization: `Bearer ${token}` },
+  });

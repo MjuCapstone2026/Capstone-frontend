@@ -20,14 +20,14 @@ import {
 import { useUser, useAuth } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import { useApi } from "@/hooks/useApi";
-import { registerUser } from "@/api/auth";
+import { registerUser, authConnect } from "@/api/auth";
 
 export default function HomeScreen() {
   const [result, setResult] = useState<string>("버튼을 눌러 통신을 확인하세요.");
   const [loading, setLoading] = useState<boolean>(false);
 
   const { user, isLoaded } = useUser();
-  const { signOut, getToken } = useAuth();
+  const { signOut } = useAuth();
   const router = useRouter();
   const { authRequest } = useApi();
 
@@ -77,15 +77,15 @@ export default function HomeScreen() {
     }
   };
 
-  // JWT 인증 API 호출 테스트 (백엔드 API 준비되면 authRequest(yourApiFunction) 형태로 사용)
-  const handleAuthenticatedCall = async () => {
+  // JWT 인증 테스트: Spring → FastAPI 토큰 전달 확인
+  const handleAuthConnect = async () => {
     setLoading(true);
     try {
-      const token = await getToken();
-      setResult(`✅ 토큰 정상 발급\n${token?.slice(0, 60)}...`);
+      const data = await authRequest(authConnect);
+      setResult(String(data));
     } catch (error: any) {
-      console.error("인증 API 오류:", error);
-      setResult(`❌ 인증 API 호출 실패!\n${error.message}`);
+      console.error("auth-connect 오류:", error);
+      setResult(`❌ 실패!\n${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -138,10 +138,10 @@ export default function HomeScreen() {
 
         <TouchableOpacity
           style={[styles.button, styles.authButton]}
-          onPress={handleAuthenticatedCall}
+          onPress={handleAuthConnect}
         >
           <Text style={styles.buttonText}>
-            [인증] JWT 토큰 API 호출 테스트
+            [인증] Spring → FastAPI 연결 테스트
           </Text>
         </TouchableOpacity>
 
