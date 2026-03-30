@@ -55,8 +55,6 @@ export default function SignInScreen() {
       // 로그인 성공 시 세션 활성화
       if (createdSessionId) {
         await setActive!({ session: createdSessionId });
-
-        // 메인 화면으로 이동
         router.replace('/(tabs)');
       }
     } catch (error) {

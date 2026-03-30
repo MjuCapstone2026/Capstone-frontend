@@ -5,7 +5,7 @@ import { apiClient } from './client';
 // 이미 존재하는 유저면 무시 (idempotent)
 export const registerUser = (token: string) =>
   apiClient.post(
-    '/api/auth/register',
+    '/api/user/signup',
     {},
     { headers: { Authorization: `Bearer ${token}` } }
   );

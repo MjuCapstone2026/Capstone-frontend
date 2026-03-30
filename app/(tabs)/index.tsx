@@ -6,7 +6,7 @@
  */
 
 import axios from "axios";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -20,6 +20,7 @@ import {
 import { useUser, useAuth } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import { useApi } from "@/hooks/useApi";
+import { registerUser } from "@/api/auth";
 
 export default function HomeScreen() {
   const [result, setResult] = useState<string>("버튼을 눌러 통신을 확인하세요.");
@@ -29,6 +30,15 @@ export default function HomeScreen() {
   const { signOut, getToken } = useAuth();
   const router = useRouter();
   const { authRequest } = useApi();
+
+  // 탭 진입 시 백엔드 DB에 유저 등록
+  // Clerk 세션이 완전히 초기화된 후 호출되므로 getToken()이 정상 동작
+  // 이미 존재하는 유저면 백엔드에서 무시 (idempotent)
+  useEffect(() => {
+    authRequest(registerUser).catch((e) =>
+      console.error("유저 등록 실패:", e)
+    );
+  }, []);
 
   const serverIp = process.env.EXPO_PUBLIC_SERVER_IP;
   const API_URL = `http://${serverIp}:8080/api/test/connect`;
