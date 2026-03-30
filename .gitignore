@@ -42,3 +42,9 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Claude / AI Assistant 관련
+.claude/
+.claude.json
+claude.log
+claude-settings.json
