@@ -5,9 +5,9 @@ import { apiClient } from './client';
 // 이미 존재하는 유저면 무시 (idempotent)
 export const registerUser = (token: string) =>
   apiClient.post(
-    '/api/user/signup',
+    '/api/users/signup',
     {},
-    { headers: { Authorization: `Bearer ${token}` } }
+    { headers: { Authorization: `Bearer ${token}` } },
   );
 
 // JWT 인증 테스트: Spring → FastAPI 토큰 전달 확인
