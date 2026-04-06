@@ -58,3 +58,31 @@ npx expo start
 - npm run android: 안드로이드 에뮬레이터에서 실행
 - npm run ios: iOS 시뮬레이터에서 실행
 - npm run web: 웹 브라우저에서 실행
+
+---
+
+## 🐳 Docker 빌드 및 배포
+
+> 실제 배포는 `capstone-deploy` 레포에서 전체 서비스를 한번에 실행합니다.
+> 아래는 이 서비스만 단독으로 빌드/실행할 때 사용합니다.
+
+### 이미지 빌드
+
+```bash
+docker build -t capstone-frontend .
+```
+
+> **참고:** Expo는 환경변수를 빌드 타임에 JS 번들에 포함시키기 때문에 `--build-arg`가 필요합니다.
+> `capstone-deploy`에서 빌드 시 `frontend.env`의 값이 자동으로 주입됩니다.
+
+### 단독 실행
+
+```bash
+docker run -p 80:80 capstone-frontend
+```
+
+### 빌드 결과
+
+- `npx expo export --platform web` 으로 정적 파일 생성 (`dist/`)
+- nginx가 포트 80에서 정적 파일 서빙
+- SPA 라우팅 지원 (모든 경로 → `index.html` fallback)
