@@ -44,7 +44,16 @@ app-example
 /android
 
 # Claude / AI Assistant 관련
-.claude/
 .claude.json
 claude.log
 claude-settings.json
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# VSCode
+.vscode/
