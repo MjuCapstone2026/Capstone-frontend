@@ -28,8 +28,10 @@ PlanDetailEditScreen 인라인 편집 아코디언 카드 하나.
 ```
 ┌──────────────────────────────────────┐
 │ [08:00] ~ [09:30]  제주행 항공편   ∧ │  (읽기 전용) 시간, 일정명 ic_chevron_down
-│ 제주항공 7C101                       │  (읽기 전용) 메모
+│ 제주항공 7C101                       │  (읽기 전용) detail.airline + detail.flight_no
 │ 📍 김포국제공항 국내선                │  (읽기 전용) 위치 ic_pin
+│ 💲 150,000원                        │  (읽기 전용) 가격 ic_price
+│ 🔗 예약 확인하기                      │  (읽기 전용) 외부 링크 ic_external_link
 │                                      │
 └──────────────────────────────────────┘
 ```
@@ -38,7 +40,8 @@ PlanDetailEditScreen 인라인 편집 아코디언 카드 하나.
 ┌──────────────────────────────────────┐
 │ [12:00] ~ [12:30]  점심 식사        ∧ │  ← 시간, 일정명 편집 가능 ic_chevron_down
 │ 마라도 짜장면 |                        │  ← 메모 편집 가능
-│ 📍 김포국제공항 국내선                │   ← 위치 편집 가능 ic_pin
+│ 📍 마라도 어딘가                     │   ← 위치 편집 가능 ic_pin
+│ 💲 15,000원                        │   ← 가격 편집 가능 ic_price
 │                               삭제    │  ← Danger 색상
 └──────────────────────────────────────┘
 ```
@@ -57,8 +60,8 @@ PlanDetailEditScreen 인라인 편집 아코디언 카드 하나.
 | 시간 Border Radius | `radius-sm` | `radius-sm` | - |
 | 일정명, 메모 텍스트 | `heading-md` / `Light/Title,Body Text` | `heading-md` / `Dark/Title,Body Text` | - |
 | 위치 텍스트 | `body-md` / `Light/Caption,Hint` | `body-md` / `Dark/Caption,Hint` | - |
-| 위치 아이콘(ic_pin) 색상 | `Light/Caption,Hint` | `Dark/Caption,Hint` | - |
-| 삭제 | `body-lg` / `Light/Danger,Logout` | `body-lg` / `Dark/Danger,Logout` | - |
+| 위치, 돈 아이콘(ic_pin, ic_price) 색상 | `Light/Caption,Hint` | `Dark/Caption,Hint` | - |
+| 외부 링크 아이콘(ic_external_link) 색상 | `Light/Primary,CTA Button` | `Dark/Primary,CTA Button` | - || 삭제 | `body-lg` / `Light/Danger,Logout` | `body-lg` / `Dark/Danger,Logout` | - |
 | 드롭다운 아이콘(ic_chevron_down) 색상 | `Light/Caption,Hint` | `Dark/Caption,Hint` | `Light/Title,Body Text` / `Dark/Title,Body Text` |
 
 ## 편집 가능 / 읽기 전용 필드
@@ -103,7 +106,8 @@ PlanDetailEditScreen 인라인 편집 아코디언 카드 하나.
 
 ## 관련 아이콘 추가후, 경로 추가
 `assets/icons/ic_pin.svg`
-
+`assets/icons/ic_price.svg`
+`assets/icons/ic_external_link.svg`
 `assets/icons/ic_chevron_down.svg` → 드롭다운이 열렸을 경우, 반시계 방향으로 180도 회전을 주어서 Up 상태를 만들어 재사용합니다.(+Animation)
 
 ## 이미지
