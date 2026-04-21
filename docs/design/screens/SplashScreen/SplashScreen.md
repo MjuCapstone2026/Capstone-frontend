@@ -4,10 +4,6 @@
 
 앱 실행 시 가장 먼저 표시되는 화면.
 
-`Light/Primary,CTA Button` 초록 배경 + 앱 아이콘 중앙 배치.
-
-다크 모드 없음 — 항상 라이트 기준 초록 배경 고정.
-
 ## 구성
 
 ```
@@ -38,6 +34,9 @@ React Native에서 SplashScreen은 코드로 구현하지 않고 **네이티브 
 SplashScreen에서 폰트 로딩 완료 후, LoginScreen으로 넘어감. 현 단계에서는 LoginScreen이 없으므로 임의로 빈 화면 LoginScreen 만듦.
 
 앱 로딩 완료 후 SplashScreen을 숨기는 처리는 `app/_layout.tsx`에서
+
+> **[임시]** Windows 환경 제약으로 Native 빌드 테스트 불가 → 현재는 `screens/SplashScreen.tsx` + `app/splash.tsx`로 외형 확인용 Screen을 임시 운영 중.
+> Mac 환경 또는 Android Studio 세팅 후 Native Splash(`app.json` + `expo-splash-screen`)로 교체 예정. 교체 시 `app/splash.tsx`와 `screens/SplashScreen.tsx` 제거.
 
 ## 이미지
 
