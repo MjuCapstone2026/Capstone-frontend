@@ -6,8 +6,10 @@
  */
 
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
 
 // Clerk 인증 관련 import
@@ -15,6 +17,8 @@ import { ClerkProvider, ClerkLoaded } from '@clerk/clerk-expo';
 import { tokenCache } from '@/utils/tokenCache';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import Toast from 'react-native-toast-message';
+import { SplashScreen } from '@/screens/SplashScreen';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -22,6 +26,21 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+
+  const [fontsLoaded] = useFonts({
+    'Pretendard-Regular': require('@/assets/fonts/Pretendard-Regular.otf'),
+    'Pretendard-Medium': require('@/assets/fonts/Pretendard-Medium.otf'),
+    'Pretendard-SemiBold': require('@/assets/fonts/Pretendard-SemiBold.otf'),
+    'Pretendard-Bold': require('@/assets/fonts/Pretendard-Bold.otf'),
+  });
+
+  // Load가 빨라서 디자인 확인이 불가하여 임의로 초 설정해 두었습니다.
+  // 향후, Native Splash 혼용.
+  const [splashVisible, setSplashVisible] = useState(true);
+  useEffect(() => {
+    const timer = setTimeout(() => setSplashVisible(false), 2000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // .env 파일에서 Clerk Publishable Key 가져오기
   const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
@@ -40,23 +59,28 @@ export default function RootLayout() {
      * - publishableKey: Clerk 대시보드에서 발급받은 공개 키
      */
     <ClerkProvider tokenCache={tokenCache} publishableKey={publishableKey}>
-      {/**
-       * ClerkLoaded: Clerk가 완전히 로드된 후에만 자식 컴포넌트를 렌더링
-       * 이를 통해 인증 상태가 준비되기 전의 깜빡임을 방지합니다.
-       */}
-      <ClerkLoaded>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <Stack>
-            {/* 인증 화면 (로그인, 회원가입 등) */}
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-            {/* 메인 탭 화면 (인증 필요) */}
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            {/* 모달 화면 */}
-            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-          </Stack>
-          <StatusBar style="auto" />
-        </ThemeProvider>
-      </ClerkLoaded>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        {(!fontsLoaded || splashVisible) ? (
+          <SplashScreen />
+        ) : (
+          /* ClerkLoaded: Clerk가 완전히 로드된 후에만 자식 컴포넌트를 렌더링
+           * 이를 통해 인증 상태가 준비되기 전의 깜빡임을 방지합니다. */
+          <ClerkLoaded>
+            <Stack>
+              {/* 인증 화면 (로그인, 회원가입 등) */}
+              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+              {/* 메인 앱 화면 — BottomNavigation 포함 */}
+              <Stack.Screen name="(main)" options={{ headerShown: false }} />
+              {/* 메인 탭 화면 (인증 필요) */}
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              {/* 모달 화면 */}
+              <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+            </Stack>
+            <StatusBar style="auto" />
+            <Toast />
+          </ClerkLoaded>
+        )}
+      </ThemeProvider>
     </ClerkProvider>
   );
 }
