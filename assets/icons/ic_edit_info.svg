@@ -1,0 +1,10 @@
+<svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Frame">
+<path id="Vector" d="M4 8H24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+<path id="Vector_2" d="M4 14H24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+<path id="Vector_3" d="M4 20H24" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+<path id="Vector_4" d="M9 10.5C10.3807 10.5 11.5 9.38071 11.5 8C11.5 6.61929 10.3807 5.5 9 5.5C7.61929 5.5 6.5 6.61929 6.5 8C6.5 9.38071 7.61929 10.5 9 10.5Z" stroke="currentColor" stroke-width="1.8"/>
+<path id="Vector_5" d="M18 16.5C19.3807 16.5 20.5 15.3807 20.5 14C20.5 12.6193 19.3807 11.5 18 11.5C16.6193 11.5 15.5 12.6193 15.5 14C15.5 15.3807 16.6193 16.5 18 16.5Z" stroke="currentColor" stroke-width="1.8"/>
+<path id="Vector_6" d="M11 22.5C12.3807 22.5 13.5 21.3807 13.5 20C13.5 18.6193 12.3807 17.5 11 17.5C9.61929 17.5 8.5 18.6193 8.5 20C8.5 21.3807 9.61929 22.5 11 22.5Z" stroke="currentColor" stroke-width="1.8"/>
+</g>
+</svg>
