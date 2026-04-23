@@ -1,0 +1,28 @@
+<svg width="401" height="88" viewBox="0 0 401 88" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Property 1=Light" filter="url(#filter0_d_102_1997)">
+<mask id="path-1-outside-1_102_1997" maskUnits="userSpaceOnUse" x="4" y="3" width="393" height="80" fill="black">
+<rect fill="white" x="4" y="3" width="393" height="80"/>
+<path d="M4 3H396.723V81.7199H4V3Z"/>
+</mask>
+<path d="M4 3H396.723V81.7199H4V3Z" fill="#FAFAF7"/>
+<path d="M396.723 81.7199V80.7199H4V81.7199V82.7199H396.723V81.7199Z" fill="#E2DDD5" mask="url(#path-1-outside-1_102_1997)"/>
+<g id="Button">
+<g id="Icon">
+<path id="Vector" d="M31.3171 42.3599H44.6495" stroke="#4A7C59" stroke-width="1.66654" stroke-linecap="round" stroke-linejoin="round"/>
+<path id="Vector_2" d="M31.3171 37.3601H44.6495" stroke="#4A7C59" stroke-width="1.66654" stroke-linecap="round" stroke-linejoin="round"/>
+<path id="Vector_3" d="M31.3171 47.3594H44.6495" stroke="#4A7C59" stroke-width="1.66654" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+</g>
+</g>
+<defs>
+<filter id="filter0_d_102_1997" x="0" y="0" width="400.723" height="87.72" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+<feOffset dy="1"/>
+<feGaussianBlur stdDeviation="2"/>
+<feColorMatrix type="matrix" values="0 0 0 0 0.118 0 0 0 0 0.157 0 0 0 0 0.133 0 0 0 0.06 0"/>
+<feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_102_1997"/>
+<feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_102_1997" result="shape"/>
+</filter>
+</defs>
+</svg>

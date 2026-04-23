@@ -1,53 +1,123 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
+// ─── Border Radius ────────────────────────────────────────
+export const BorderRadius = {
+  xs:      4,
+  sm:      8,
+  md:      12,
+  lg:      16,
+  lgModal: 32,
+  full:    9999,
+} as const;
 
-import { Platform } from 'react-native';
+// ─── Typography ───────────────────────────────────────────
+export const Typography = {
+  'heading-xl': { fontFamily: 'Pretendard-Bold', fontSize: 22, fontWeight: '700', lineHeight: 29, letterSpacing: -0.3 },
+  'heading-lg': { fontFamily: 'Pretendard-Bold', fontSize: 20, fontWeight: '700', lineHeight: 26, letterSpacing: -0.3 },
+  'heading-md': { fontFamily: 'Pretendard-SemiBold', fontSize: 18, fontWeight: '600', lineHeight: 23, letterSpacing: -0.3 },
+  'heading-sm': { fontFamily: 'Pretendard-SemiBold', fontSize: 16, fontWeight: '600', lineHeight: 21, letterSpacing: -0.3 },
+  'body-lg': { fontFamily: 'Pretendard-Regular', fontSize: 16, fontWeight: '400', lineHeight: 26, letterSpacing: 0 },
+  'body-md': { fontFamily: 'Pretendard-Regular', fontSize: 14, fontWeight: '400', lineHeight: 22, letterSpacing: 0 },
+  'body-sm': { fontFamily: 'Pretendard-Regular', fontSize: 13, fontWeight: '400', lineHeight: 21, letterSpacing: 0 },
+  'caption': { fontFamily: 'Pretendard-Regular', fontSize: 12, fontWeight: '400', lineHeight: 17, letterSpacing: 0.2 },
+  'label': { fontFamily: 'Pretendard-Medium', fontSize: 11, fontWeight: '500', lineHeight: 15, letterSpacing: 0.2 },
+} as const;
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
-
+// ─── Colors ───────────────────────────────────────────────
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    // Primary
+    primary: '#4A7C59',
+    primaryActive: '#3B6347',
+    primaryLight: '#6A9E7A',
+    primaryTint: '#C8DEC9',
+
+    // Background
+    cardBg: '#FAFAF7',
+    pageBg: '#F5F3EE',
+    secondarySurface: '#EDEAE3',
+    divider: '#E2DDD5',
+
+    // Text
+    textTitle: '#1A1A1A',
+    textSub: '#4A4A4A',
+    textCaption: '#888882',
+    textDisabled: '#B0ADA7',
+
+    // Semantic
+    danger: '#E8635A',
+    success: '#5D9E75',
+    progress: '#7EB8A4',
+    warning: '#D4A85C',
+    dangerBg: '#FDECEA',
+    successBg: '#EBF5EE',
+    progressBg: '#EAF4F1',
+    warningBg: '#FDF5E6',
+
+    // Reservation Type
+    flightHeader: '#1A6B8A',
+    accommodationHeader: '#2D5A3D',
+    carRentalHeader: '#7A5230',
+
+    // Overlay
+    pressOverlay: 'rgba(30,40,34,0.08)',
+    scrimDrawer: 'rgba(30,40,34,0.24)',
+    scrimModal: 'rgba(30,40,34,0.48)',
   },
+
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    // Primary
+    primary: '#5E9E72',
+    primaryActive: '#4A7C58',
+    primaryLight: '#2E4D38',
+    primaryTint: '#2E3526',
+
+    // Background
+    cardBg: '#262B28',
+    pageBg: '#1C2120',
+    secondarySurface: '#161A18',
+    divider: '#373F3B',
+
+    // Text
+    textTitle: '#E8E4DC',
+    textSub: '#B8B5AE',
+    textCaption: '#7A7873',
+    textDisabled: '#4A4845',
+
+    // Semantic
+    danger: '#C45650',
+    success: '#56B979',
+    progress: '#5E9688',
+    warning: '#B08A42',
+    dangerBg: '#3D1F1E',
+    successBg: '#1A3326',
+    progressBg: '#1A2E2B',
+    warningBg: '#2E2410',
+
+    // Reservation Type
+    flightHeader: '#1A5470',
+    accommodationHeader: '#1E3D29',
+    carRentalHeader: '#5A3A1F',
+
+    // Overlay
+    pressOverlay: 'rgba(255,255,255,0.08)',
+    scrimDrawer: 'rgba(30,40,34,0.24)',
+    scrimModal: 'rgba(30,40,34,0.48)',
   },
 };
 
-export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
+// ─── Elevation ────────────────────────────────────────────
+// iOS 전용. RN은 뷰당 그림자 하나만 지원 — 다중 레이어는 주요 그림자만 반영.
+// 사용: const { scheme } = useTheme();  Elevation[scheme][2]
+export const Elevation = {
+  light: {
+    1: { shadowColor: '#1E2822', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4 },
+    2: { shadowColor: '#1E2822', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.09, shadowRadius: 8 },
+    3: { shadowColor: '#1E2822', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 16 },
+    4: { shadowColor: '#1E2822', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.16, shadowRadius: 32 },
   },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
+  dark: {
+    1: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.20, shadowRadius: 4 },
+    2: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.30, shadowRadius: 8 },
+    3: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.40, shadowRadius: 16 },
+    4: { shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.50, shadowRadius: 32 },
   },
-  web: {
-    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    serif: "Georgia, 'Times New Roman', serif",
-    rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
-    mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-  },
-});
+} as const;
