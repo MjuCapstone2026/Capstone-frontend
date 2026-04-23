@@ -47,6 +47,7 @@ app-example
 .claude.json
 claude.log
 claude-settings.json
+.claude/settings.local.json
 
 # IntelliJ IDEA
 .idea/
