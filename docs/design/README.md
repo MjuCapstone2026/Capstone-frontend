@@ -10,6 +10,7 @@
 - **Typography 스타일:** Figma Text Styles (`heading-xl` ~ `label`) — 등록 완료
 - **Border Radius 변수:** Figma Variables (`Border Radius` 컬렉션) — 등록 완료
 - **Elevation:** Effect Styles (`Light/elevation-1~4`, `Dark/elevation-1~4`) — 등록 완료
+- **Toast:** `react-native-toast-message` 라이브러리 기본 UI 사용 (커스텀 없음)
 
 ---
 
@@ -18,7 +19,6 @@
 ```
 docs/design/
 ├── README.md
-├── conventions.md
 ├── tokens/
 │   ├── typography.md              ← 타입 토큰
 │   ├── border-radius.md           ← radius 토큰
@@ -49,6 +49,8 @@ docs/design/
 │   ├── ItineraryOverviewCard2BeforeEdit/ ← PlanDetailScreen 상단 헤더
 │   ├── ItineraryOverviewCard2Editing/    ← PlanDetailEditScreen 상단 Sticky 헤더
 │   ├── NewTravelGenerateButton/   ← PlanScreen 빈 상태 버튼
+│   ├── PlanDetailEditItem/        ← PlanDetailEditScreen 인라인 편집 아코디언 카드
+│   ├── PlanDetailItem/            ← PlanDetailScreen / ChangeLogDetailScreen 타임라인 아코디언 카드
 │   ├── QuickMenu/                 ← 홈 퀵메뉴 (AI와 채팅 / 일정 보기)
 │   ├── RecentChatSection/         ← 홈 최근 채팅 섹션
 │   ├── RecentTravelSection/       ← 홈 최근 여행 섹션
@@ -68,9 +70,11 @@ docs/design/
     ├── ChatScreen/                 ← 채팅 (EditChatNameScreen 포함)
     ├── PlanScreen/                 ← 여행 일정 (WithSchedule / Empty)
     ├── PlanListScreen/             ← 여행 목록 (MyTravelPlanList, MyReservationList 포함)
-    ├── PlanDetailScreen/           ← 여행 상세 조회 (PlanDetail 포함)
-    ├── PlanDetailEditScreen/       ← 여행 상세 편집 (PlanDetailEdit 포함)
+    ├── PlanListDetailScreen/           ← 여행 상세 조회 (PlanDetail 포함)
+    ├── PlanListDetailEditScreen/       ← 여행 상세 편집 (PlanDetailEdit 포함)
+    ├── ChangeLogDetailScreen/      ← 여행 상세 이력
     ├── SettingScreen/              ← 설정 (Settings 포함)
+    ├── SplashScreen/
     └── LoginScreen/                ← 로그인 (Google Sign In)
 ```
 
@@ -80,13 +84,10 @@ docs/design/
 
 | 항목 | 포함 위치 |
 |---|---|
-| TravelListTabBar, ReservationTypeTab, ReservationStatusFilter | PlanListScreen |
-| MyTravelPlanList, MyReservationList | PlanListScreen |
-| ItineraryOverviewCard2-BeforeEdit, PlanDetail | PlanDetailScreen |
 | EditChatNameScreen | ChatScreen |
 | EditTripInfoScreen (TripInfoBottomSheet Edit) | ChatScreen |
-| ItineraryOverviewCard2-Editing | PlanDetailEditScreen |
-| 인라인 편집 아코디언 항목 (닫힌 상태 / 펼쳐진 상태) | PlanDetailEditScreen |
+| LightAgesDrop (나이 드롭다운) | TripInfoBottomSheet |
+| Settings | SettingScreen |
 | GoogleSignIn 버튼 | LoginScreen |
  
 ---
