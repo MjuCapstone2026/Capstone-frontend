@@ -105,19 +105,19 @@ export const Colors = {
 };
 
 // ─── Elevation ────────────────────────────────────────────
-// iOS 전용. RN은 뷰당 그림자 하나만 지원 — 다중 레이어는 주요 그림자만 반영.
+// iOS: shadow props / Android: elevation prop
 // 사용: const { scheme } = useTheme();  Elevation[scheme][2]
 export const Elevation = {
   light: {
-    1: { shadowColor: '#1E2822', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4 },
-    2: { shadowColor: '#1E2822', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.09, shadowRadius: 8 },
-    3: { shadowColor: '#1E2822', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 16 },
-    4: { shadowColor: '#1E2822', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.16, shadowRadius: 32 },
+    1: { shadowColor: '#1E2822', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4,  elevation: 2  },
+    2: { shadowColor: '#1E2822', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.09, shadowRadius: 8,  elevation: 4  },
+    3: { shadowColor: '#1E2822', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 16, elevation: 8  },
+    4: { shadowColor: '#1E2822', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.16, shadowRadius: 32, elevation: 16 },
   },
   dark: {
-    1: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.20, shadowRadius: 4 },
-    2: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.30, shadowRadius: 8 },
-    3: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.40, shadowRadius: 16 },
-    4: { shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.50, shadowRadius: 32 },
+    1: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.20, shadowRadius: 4,  elevation: 2  },
+    2: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.30, shadowRadius: 8,  elevation: 4  },
+    3: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.40, shadowRadius: 16, elevation: 8  },
+    4: { shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.50, shadowRadius: 32, elevation: 16 },
   },
 } as const;
