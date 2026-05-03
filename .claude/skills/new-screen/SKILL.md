@@ -20,11 +20,29 @@ allowed-tools: Read, Write, Edit, Glob
 
 ## 절차
 
-### 1. 라우트 그룹 확인
+### 1. 디자인 문서 및 이미지 확인 (필수)
+아래 경로를 Glob으로 탐색하여 해당 화면의 디자인 문서를 찾는다.
+
+```
+docs/design/screens/{Name}/{Name}.md
+```
+
+- 문서가 **있으면** Read로 읽어 레이아웃, 컴포넌트 구성, SafeArea, 상태(Loading/Empty/Filled) 등 스펙을 파악한다.
+- 문서가 **없으면** 화면 이름과 역할로 구조를 추론한다.
+
+문서를 찾은 디렉토리에서 SVG 파일도 Glob으로 탐색한다.
+
+```
+docs/design/screens/{Name}/*.svg
+```
+
+- SVG가 **있으면** Read로 모두 읽어 시각적 디자인을 파악한다 (레이아웃, 상태별 화면 구성, 간격 등).
+
+### 2. 라우트 그룹 확인
 - 요청한 경로의 라우트 그룹 `_layout.tsx`를 Read로 읽는다.
 - `(main)`에 추가하는 경우 BottomNavigation 업데이트가 필요하면 사용자에게 안내한다.
 
-### 2. 라우트 진입점 파일 생성
+### 3. 라우트 진입점 파일 생성
 `app/{경로}.tsx` — 라우팅만 담당, UI 없음:
 
 ```typescript
@@ -46,7 +64,7 @@ export default function {Name}Route() {
 }
 ```
 
-### 3. 화면 UI 파일 생성
+### 4. 화면 UI 파일 생성
 `screens/{Name}Screen.tsx` — 실제 화면 UI 담당:
 
 ```typescript
@@ -82,11 +100,13 @@ const styles = StyleSheet.create({
 });
 ```
 
-### 4. 피그마/디자인 가이드 적용 (선택)
-- 사용자가 디자인 이미지를 제공한 경우 해당 디자인에 맞게 JSX와 StyleSheet 작성
+### 5. 디자인 스펙 반영
+- 1단계에서 읽은 디자인 문서 스펙을 JSX와 StyleSheet에 반영한다.
+- 사용자가 추가 이미지를 제공한 경우 해당 디자인도 반영한다.
 - 색상 하드코딩 금지 — 반드시 `useTheme()` 훅 사용 (`colors.xxx` 형태로 인라인)
 - Typography는 `StyleSheet.create()` 안에 spread — 인라인에 직접 넣기 금지
+- SafeArea가 필요한 경우 `useSafeAreaInsets()` 사용, 하드코딩 금지
 
-### 5. 완료 후 안내
+### 6. 완료 후 안내
 - 생성된 파일 경로 (라우트 + 스크린 2개)
 - 해당 화면에서 API 호출이 필요하면 `/new-api` 실행을 안내
