@@ -7,7 +7,7 @@
 
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
@@ -26,6 +26,7 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const router = useRouter();
 
   const [fontsLoaded] = useFonts({
     'Pretendard-Regular': require('@/assets/fonts/Pretendard-Regular.otf'),
@@ -41,6 +42,12 @@ export default function RootLayout() {
     const timer = setTimeout(() => setSplashVisible(false), 2000);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (!splashVisible && fontsLoaded && __DEV__) {
+      router.replace('/dev_gallery');
+    }
+  }, [splashVisible, fontsLoaded]);
 
   // .env 파일에서 Clerk Publishable Key 가져오기
   const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
@@ -75,6 +82,13 @@ export default function RootLayout() {
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               {/* 모달 화면 */}
               <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+              {/* 초기 진입 라우팅 */}
+              <Stack.Screen name="index" options={{ headerShown: false }} />
+              {/* 개발용 갤러리 허브 */}
+              <Stack.Screen name="dev_gallery" options={{ title: 'Dev Gallery' }} />
+              <Stack.Screen name="red_dev1" options={{ title: 'Red — Components 1' }} />
+              <Stack.Screen name="red_dev2" options={{ title: 'Red — Components 2' }} />
+              <Stack.Screen name="blue_dev1" options={{ title: 'Blue — Components 1' }} />
             </Stack>
             <StatusBar style="auto" />
             <Toast />
