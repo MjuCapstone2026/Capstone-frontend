@@ -20,7 +20,7 @@
 - **높이:** 72px + `insets.bottom` (기기 안전영역 포함)
 - **Elevation:** `Light/elevation-3`
 - **Typography:** `label`
-- **활성 색상:** `Light/Primary Light`
+- **활성 색상:** `Light/Primary,CTA Button`
 - **비활성 색상:** `Light/Placeholder,Disabled`
 - **배경:** `Light/Surface,Card BG`
 - **상단 border:** `1px solid Light/Divider,Border`
@@ -29,7 +29,7 @@
 - **높이:** 72px + `insets.bottom` (기기 안전영역 포함)
 - **Elevation:** `Dark/elevation-3`
 - **Typography:** `label`
-- **활성 색상:** `Dark/Primary Light`
+- **활성 색상:** `Dark/Primary,CTA Button`
 - **비활성 색상:** `Dark/Placeholder,Disabled`
 - **배경:** `Dark/Surface,Card BG`
 - **상단 border:** `1px solid Dark/Divider,Border`

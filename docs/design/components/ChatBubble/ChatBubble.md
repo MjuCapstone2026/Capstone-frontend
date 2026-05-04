@@ -30,6 +30,7 @@
 | 버블 border | `1px solid Light/Divider,Border` | `1px solid Dark/Divider,Border` |
 | Border Radius | `radius-lg` | `radius-lg` |
 | Elevation | `Light/elevation-1` | `Dark/elevation-1` |
+| "사용자" | `caption` / `Light/Title,Body Text` | `caption` / `Dark/Title,Body Text` |
 | 메시지 | `body-md` / `Light/Title,Body Text` | `body-md` / `Dark/Title,Body Text` |
 | 타임스탬프 | `caption` / `Light/Caption,Hint` | `caption` / `Dark/Caption,Hint` |
 | 아이콘 색상 | `Light/Surface,Card BG` | `Dark/Title,Body Text` |
@@ -54,6 +55,7 @@
 | 버블 Border | `1px solid Light/Divider,Border` | `1px solid Dark/Divider,Border` |
 | Border Radius | `radius-lg` | `radius-lg` |
 | Elevation | `Light/elevation-1` | `Dark/elevation-1` |
+| "사용자" | `caption` / `Light/Title,Body Text` | `caption` / `Dark/Title,Body Text` |
 | 메시지 | `body-md` / `Light/Title,Body Text` | `body-md` / `Dark/Title,Body Text` |
 | 타임스탬프 | `caption` / `Light/Caption,Hint` | `caption` / `Dark/Caption,Hint` |
 | 아이콘 색상 | `Light/Surface,Card BG` | `Dark/Title,Body Text` |
