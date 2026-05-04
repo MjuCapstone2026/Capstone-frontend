@@ -72,11 +72,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   title: {
-    ...Typography['body-lg'],
+    ...Typography['heading-md'],
     textAlign: 'center',
   },
   message: {
-    ...Typography['body-sm'],
+    ...Typography['body-lg'],
     textAlign: 'center',
   },
   buttonRow: {
@@ -92,6 +92,6 @@ const styles = StyleSheet.create({
     borderLeftWidth: 1,
   },
   buttonText: {
-    ...Typography['body-md'],
+    ...Typography['body-lg'],
   },
 });
