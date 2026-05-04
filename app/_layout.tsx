@@ -11,6 +11,7 @@ import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 // Clerk 인증 관련 import
 import { ClerkProvider, ClerkLoaded } from '@clerk/clerk-expo';
@@ -66,6 +67,7 @@ export default function RootLayout() {
      * - publishableKey: Clerk 대시보드에서 발급받은 공개 키
      */
     <ClerkProvider tokenCache={tokenCache} publishableKey={publishableKey}>
+      <KeyboardProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         {(!fontsLoaded || splashVisible) ? (
           <SplashScreen />
@@ -95,6 +97,7 @@ export default function RootLayout() {
           </ClerkLoaded>
         )}
       </ThemeProvider>
+      </KeyboardProvider>
     </ClerkProvider>
   );
 }
