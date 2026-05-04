@@ -32,8 +32,8 @@ PlanScreen 현재 진행 중인 일정 카드.
 | 카드 배경 | `Light/Primary,CTA Button` | `Dark/Primary,CTA Button` |
 | Border Radius | `radius-lg` | `radius-lg` |
 | Elevation | `Light/elevation-2` | `Dark/elevation-2` |
-| 일정명 | `heading-md` / `Light/Surface,Card BG` | `heading-md` / `Dark/Surface,Card BG` |
-| 시간/위치 | `body-md` / `Light/Surface,Card BG` | `body-md` / `Dark/Surface,Card BG` |
+| 일정명 | `heading-md` / `Light/Surface,Card BG` | `heading-md` / `Dark/Title,Body Text` |
+| 시간/위치 | `body-md` / `Light/Surface,Card BG` | `body-md` / `Dark/Title,Body Text` |
 | 길 안내 버튼 배경 | `Light/Surface,Card BG` | `Dark/Title,Body Text` |
 | 길 안내 버튼 텍스트 | `body-lg` / `Light/Primary,CTA Button` | `body-lg` / `Dark/Primary,CTA Button` |
 | 길 안내 버튼 Border Radius | `radius-md` | `radius-md` |
@@ -50,7 +50,7 @@ import { Linking } from 'react-native';
 
 const openNavigation = (lat: number, lng: number, placeName: string) => {
   const kakaoUrl = `kakaomap://look?p=${lat},${lng}`;
-  const googleUrl = `https://www.google.com/?q=${lat},${lng}`;
+  const googleUrl = `https://maps.google.com/?q=${lat},${lng}`;
 
   Linking.canOpenURL(kakaoUrl).then(supported => {
     Linking.openURL(supported ? kakaoUrl : googleUrl);
