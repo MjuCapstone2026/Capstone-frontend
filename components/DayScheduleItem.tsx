@@ -1,0 +1,114 @@
+import React from 'react';
+import { StyleSheet, View, Text } from 'react-native';
+import { useTheme } from '@/hooks/useTheme';
+import { Typography, BorderRadius, Elevation } from '@/constants/theme';
+import IcPin from '@/assets/icons/ic_pin.svg';
+import { CheckButton } from '@/components/ui/CheckButton';
+
+type Status = 'upcoming' | 'completed';
+
+type Props = {
+  title: string;
+  startTime: string;
+  endTime: string;
+  location: string;
+  memo?: string;
+  status: Status;
+  onToggle: () => void;
+};
+
+export function DayScheduleItem({ title, startTime, endTime, location, memo, status, onToggle }: Props) {
+  const { colors, scheme } = useTheme();
+
+  const isCompleted = status === 'completed';
+
+  const badgeBg = isCompleted ? colors.successBg : colors.warningBg;
+  const badgeText = isCompleted ? colors.success : colors.warning;
+  const badgeLabel = isCompleted ? '완료' : '예정';
+
+  return (
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: colors.cardBg, borderColor: colors.divider },
+        Elevation[scheme][1],
+        isCompleted && styles.completed,
+      ]}
+    >
+      <View style={styles.row1}>
+        <Text style={[styles.time, { color: colors.textCaption }]}>
+          {startTime} ~ {endTime}
+        </Text>
+        {/* TODO: StatusBadge 컴포넌트 완성 후 아래 인라인 뱃지를 교체 */}
+        <View style={[styles.badge, { backgroundColor: badgeBg }]}>
+          <Text style={[styles.badgeText, { color: badgeText }]}>{badgeLabel}</Text>
+        </View>
+        <View style={styles.spacer} />
+        <CheckButton checked={isCompleted} onToggle={onToggle} />
+      </View>
+
+      <Text style={[styles.title, { color: colors.textTitle }]} numberOfLines={1}>
+        {title}
+      </Text>
+
+      <View style={styles.locationRow}>
+        <IcPin width={14} height={14} color={colors.textCaption} />
+        <Text style={[styles.locationText, { color: colors.textCaption }]} numberOfLines={1}>
+          {location}
+        </Text>
+      </View>
+
+      {memo ? (
+        <Text style={[styles.memo, { color: colors.textCaption }]}>{memo}</Text>
+      ) : null}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: {
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 4,
+  },
+  completed: {
+    opacity: 0.6,
+  },
+  row1: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  time: {
+    ...Typography['body-md'],
+  },
+  spacer: {
+    flex: 1,
+  },
+  badge: {
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    borderRadius: BorderRadius.full,
+  },
+  badgeText: {
+    ...Typography['label'],
+  },
+
+  title: {
+    ...Typography['heading-md'],
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  locationText: {
+    ...Typography['body-md'],
+    flex: 1,
+  },
+  memo: {
+    ...Typography['heading-md'],
+  },
+});
