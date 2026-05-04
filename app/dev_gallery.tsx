@@ -7,6 +7,7 @@ const ENTRIES = [
   { href: '/red_dev1', label: 'Red — Components 1' },
   { href: '/red_dev2', label: 'Red — Components 2 (SafeArea)' },
   { href: '/blue_dev1', label: 'Blue — Components 1' },
+  { href: '/yellow_dev1', label: 'Yellow — Components 1' },
 ] as const;
 
 export default function DevGallery() {
