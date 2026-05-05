@@ -6,7 +6,8 @@ import { NewChatScreen } from '@/screens/NewChatScreen';
 import { ChatRoomScreen } from '@/screens/ChatRoomScreen';
 
 export default function ChatRoute() {
-  const { chatId, new: isNew } = useLocalSearchParams<{ chatId?: string; new?: string }>();
+  const { chatId, mode } = useLocalSearchParams<{ chatId?: string; mode?: 'new' }>();
+  const isNew = mode === 'new';
   const [recentChatId, setRecentChatId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   // const { authRequest } = useApi(); // TODO: 활성화
@@ -24,7 +25,7 @@ export default function ChatRoute() {
     setIsLoading(false); // 임시
   }, [isNew, chatId]);
 
-  if (isNew === 'true') return <NewChatScreen />;
+  if (isNew) return <NewChatScreen />;
   if (chatId) return <ChatRoomScreen chatId={chatId} />;
   if (isLoading) return <View style={{ flex: 1 }}><ActivityIndicator /></View>;
   if (recentChatId) return <ChatRoomScreen chatId={recentChatId} />;

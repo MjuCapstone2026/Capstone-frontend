@@ -17,11 +17,11 @@ type Tab = {
 };
 
 const TABS: Tab[] = [
-  { route: '/(main)/home', Icon: IcHomeLabel },
-  { route: '/(main)/chat', Icon: IcChatLabel },
-  { route: '/(main)/plan', Icon: IcPlanLabel },
-  { route: '/(main)/plan-list', Icon: IcPlanListLabel },
-  { route: '/(main)/setting', Icon: IcSettingLabel },
+  { route: '/home', Icon: IcHomeLabel },
+  { route: '/chat', Icon: IcChatLabel },
+  { route: '/plan', Icon: IcPlanLabel },
+  { route: '/plan-list', Icon: IcPlanListLabel },
+  { route: '/setting', Icon: IcSettingLabel },
 ];
 
 export function BottomNavigation() {
@@ -65,8 +65,7 @@ export function BottomNavigation() {
       ]}
     >
       {TABS.map(({ route, Icon }) => {
-        const segment = route.replace('/(main)', '');
-        const active = pathname === segment || pathname.startsWith(segment + '/');
+        const active = pathname === route || pathname.startsWith(route + '/');
         const color = active ? colors.primary : colors.textDisabled;
 
         return (
