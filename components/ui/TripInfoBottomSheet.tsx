@@ -252,6 +252,7 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, onSubmit, on
   const { colors, scheme } = useTheme();
   const insets = useSafeAreaInsets();
   const scrollViewRef = useRef<ScrollView>(null);
+  const destinationInputRef = useRef<TextInput>(null);
 
   const [destination, setDestination] = useState('');
   const [startDate, setStartDate] = useState<Date | null>(null);
@@ -405,13 +406,20 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, onSubmit, on
                 <Text style={[styles.fieldLabel, { color: colors.textSub }]}>여행지</Text>
                 <View style={[styles.inputBox, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}>
                   <TextInput
+                    ref={destinationInputRef}
                     value={destination}
                     onChangeText={setDestination}
                     placeholder="여행지를 입력해주세요"
                     placeholderTextColor={colors.textDisabled}
                     style={[styles.textInput, { color: colors.textTitle }]}
                   />
-                  <IcSearch width={20} height={20} color={destination ? colors.textTitle : colors.textCaption} />
+                  <Pressable
+                    onPress={() => destinationInputRef.current?.focus()}
+                    style={styles.inputIconButton}
+                    hitSlop={8}
+                  >
+                    <IcSearch width={20} height={20} color={destination ? colors.textTitle : colors.textCaption} />
+                  </Pressable>
                 </View>
               </View>
 
@@ -666,6 +674,10 @@ const styles = StyleSheet.create({
   inputValue: {
     ...Typography['heading-sm'],
     flex: 1,
+  },
+  inputIconButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   calendarPanel: {
     borderRadius: BorderRadius.lg,
