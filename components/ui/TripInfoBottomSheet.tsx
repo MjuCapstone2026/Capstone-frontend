@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  Keyboard,
   Modal,
   Pressable,
   ScrollView,
@@ -157,25 +158,45 @@ function Calendar({ startDate, endDate, month, onDayPress, onPrevMonth, onNextMo
             const isEnd = !!endDate && isSameDay(day, endDate);
             const inRange = !!startDate && !!endDate && isBetween(day, startDate, endDate);
             const isSelected = isStart || isEnd;
+            const isFirstRangeDay =
+              inRange &&
+              !!startDate &&
+              isSameDay(day, new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + 1));
+            const isLastRangeDay =
+              inRange &&
+              !!endDate &&
+              isSameDay(day, new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate() - 1));
 
             return (
               <Pressable
                 key={dayIndex}
                 onPress={() => onDayPress(day)}
-                style={[styles.calendarCell, inRange && { backgroundColor: colors.primaryTint }]}
+                style={styles.calendarCell}
               >
                 {({ pressed }) => (
-                  <View
-                    style={[
-                      styles.calendarDay,
-                      isSelected && { backgroundColor: colors.primary },
-                      pressed && !isSelected && { backgroundColor: colors.pressOverlay },
-                    ]}
-                  >
-                    <Text style={[styles.calendarDayText, { color: isSelected ? colors.pageBg : colors.textTitle }]}>
-                      {day.getDate()}
-                    </Text>
-                  </View>
+                  <>
+                    {inRange && (
+                      <View
+                        style={[
+                          styles.calendarRangeBackground,
+                          { backgroundColor: colors.primaryTint },
+                          isFirstRangeDay && styles.calendarRangeStart,
+                          isLastRangeDay && styles.calendarRangeEnd,
+                        ]}
+                      />
+                    )}
+                    <View
+                      style={[
+                        styles.calendarDay,
+                        isSelected && { backgroundColor: colors.primary },
+                        pressed && !isSelected && { backgroundColor: colors.pressOverlay },
+                      ]}
+                    >
+                      <Text style={[styles.calendarDayText, { color: isSelected ? colors.pageBg : colors.textTitle }]}>
+                        {day.getDate()}
+                      </Text>
+                    </View>
+                  </>
                 )}
               </Pressable>
             );
@@ -230,6 +251,7 @@ function StepperRow({ label, value, min = 0, onDecrement, onIncrement }: Stepper
 export function TripInfoBottomSheet({ visible, mode, initialValues, onSubmit, onClose }: Props) {
   const { colors, scheme } = useTheme();
   const insets = useSafeAreaInsets();
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const [destination, setDestination] = useState('');
   const [startDate, setStartDate] = useState<Date | null>(null);
@@ -242,6 +264,8 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, onSubmit, on
   const [peopleExpanded, setPeopleExpanded] = useState(false);
   const [activeAgeDropdown, setActiveAgeDropdown] = useState<number | null>(null);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [budgetFocused, setBudgetFocused] = useState(false);
 
   useEffect(() => {
     if (!visible) return;
@@ -259,6 +283,38 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, onSubmit, on
     setActiveAgeDropdown(null);
     setCalendarMonth(initialValues?.startDate ?? new Date());
   }, [initialValues, mode, visible]);
+
+  useEffect(() => {
+    const handleKeyboardShow = (event: { endCoordinates: { height: number } }) => {
+      setKeyboardHeight(event.endCoordinates.height);
+      if (budgetFocused) {
+        setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 40);
+      }
+    };
+
+    const willShowSubscription = Keyboard.addListener('keyboardWillShow', handleKeyboardShow);
+    const didShowSubscription = Keyboard.addListener('keyboardDidShow', handleKeyboardShow);
+    const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
+      setKeyboardHeight(0);
+      setBudgetFocused(false);
+    });
+
+    return () => {
+      willShowSubscription.remove();
+      didShowSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, [budgetFocused]);
+
+  useEffect(() => {
+    if (!budgetFocused || keyboardHeight === 0) return;
+
+    const scrollTimer = setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }, 30);
+
+    return () => clearTimeout(scrollTimer);
+  }, [budgetFocused, keyboardHeight]);
 
   const allChildAgesFilled =
     children === 0 || (childAges.length === children && childAges.every(age => age !== ''));
@@ -279,6 +335,7 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, onSubmit, on
   const peopleLabel = `성인 ${adults}명${children > 0 ? `, 아동 ${children}명` : ''}`;
   const buttonLabel = mode === 'create' ? '채팅방 생성하기' : '수정하기';
   const footerBottom = Math.max(insets.bottom, 16);
+  const contentBottomPadding = budgetFocused ? keyboardHeight + footerBottom + 24 : 24;
 
   const handleDayPress = (day: Date) => {
     if (!startDate || endDate) {
@@ -338,9 +395,10 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, onSubmit, on
             <View style={[styles.handle, { backgroundColor: colors.textCaption }]} />
 
             <ScrollView
+              ref={scrollViewRef}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
-              contentContainerStyle={[styles.content, { paddingBottom: 24 }]}
+              contentContainerStyle={[styles.content, { paddingBottom: contentBottomPadding }]}
             >
               <Text style={[styles.title, { color: colors.textTitle }]}>여행 정보를 입력해주세요</Text>
               <View style={styles.fieldGroup}>
@@ -497,6 +555,11 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, onSubmit, on
                     <TextInput
                       value={budget}
                       onChangeText={value => setBudget(value.replace(/[^0-9]/g, ''))}
+                      onFocus={() => {
+                        setBudgetFocused(true);
+                        setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 80);
+                      }}
+                      onBlur={() => setBudgetFocused(false)}
                       placeholder="0"
                       placeholderTextColor={colors.textDisabled}
                       keyboardType="number-pad"
@@ -649,6 +712,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
     paddingVertical: 2,
+    position: 'relative',
+  },
+  calendarRangeBackground: {
+    bottom: 2,
+    left: -1,
+    position: 'absolute',
+    right: -1,
+    top: 2,
+  },
+  calendarRangeStart: {
+    borderBottomLeftRadius: BorderRadius.full,
+    borderTopLeftRadius: BorderRadius.full,
+  },
+  calendarRangeEnd: {
+    borderBottomRightRadius: BorderRadius.full,
+    borderTopRightRadius: BorderRadius.full,
   },
   calendarDay: {
     alignItems: 'center',
