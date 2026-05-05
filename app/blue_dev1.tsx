@@ -9,6 +9,7 @@ import { TravelPlanCard } from '@/components/TravelPlanCard';
 import { TypeMessageWindow } from '@/components/TypeMessageWindow';
 import { ReservationStatusBadge } from '@/components/ui/ReservationStatusBadge';
 import { ScheduleStatusBadge } from '@/components/ui/ScheduleStatusBadge';
+import { StatusToggle } from '@/components/ui/StatusToggle';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   const { colors } = useTheme();
@@ -28,9 +29,16 @@ export default function BlueDev1Screen() {
   const [typeTabSelected, setTypeTabSelected] = useState<'all' | 'flight' | 'accommodation' | 'car-rental'>('all');
   const [travelListTab, setTravelListTab] = useState<'itinerary' | 'reservation'>('itinerary');
   const [travelPlanStatus, setTravelPlanStatus] = useState<'upcoming' | 'completed'>('upcoming');
+  const [toggleStatus, setToggleStatus] = useState<'draft' | 'completed'>('draft');
 
   return (
     <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.pageBg }]}>
+      <Section title='StatusToggle'>
+        <StatusToggle
+          status={toggleStatus}
+          onToggle={() => setToggleStatus(s => s === 'draft' ? 'completed' : 'draft')}
+        />
+      </Section>
       <Section title='ReservationStatusBadge'>
         <View style={styles.badgePreviewBg}>
           <ReservationStatusBadge status="confirmed" />
