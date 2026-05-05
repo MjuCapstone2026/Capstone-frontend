@@ -14,7 +14,7 @@ export function PrimaryButton({ label, onPress, disabled = false }: Props) {
 
   const backgroundColor = disabled ? colors.secondarySurface : colors.primary;
   const borderColor = disabled ? colors.divider : colors.primaryActive;
-  const textColor = disabled ? colors.textDisabled : colors.cardBg;
+  const textColor = disabled ? colors.textDisabled : (scheme === 'dark' ? colors.textTitle : colors.cardBg);
   const elevation = disabled ? {} : Elevation[scheme][2];
 
   return (
