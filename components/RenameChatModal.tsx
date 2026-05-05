@@ -97,6 +97,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 11,
     ...Typography['body-md'],
+    lineHeight: undefined,
+    
   },
   buttonRow: {
     flexDirection: 'row',
