@@ -1,4 +1,5 @@
 import { useAuth } from '@clerk/clerk-expo';
+import { useCallback } from 'react';
 import { AxiosResponse } from 'axios';
 
 // 컴포넌트에서 인증 API를 호출할 때 사용하는 훅
@@ -12,14 +13,15 @@ import { AxiosResponse } from 'axios';
 export const useApi = () => {
   const { getToken } = useAuth();
 
-  const authRequest = async <T>(
-    fn: (token: string) => Promise<AxiosResponse<T>>
-  ): Promise<T> => {
-    const token = await getToken();
-    if (!token) throw new Error('인증 토큰이 없습니다. 다시 로그인해주세요.');
-    const response = await fn(token);
-    return response.data;
-  };
+  const authRequest = useCallback(
+    async <T>(fn: (token: string) => Promise<AxiosResponse<T>>): Promise<T> => {
+      const token = await getToken();
+      if (!token) throw new Error('인증 토큰이 없습니다. 다시 로그인해주세요.');
+      const response = await fn(token);
+      return response.data;
+    },
+    [getToken],
+  );
 
   return { authRequest };
 };
