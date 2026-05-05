@@ -27,7 +27,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export default function BlueDev1Screen() {
   const { colors } = useTheme();
   const [statusFilterSelected, setStatusFilterSelected] = useState<'all' | 'confirmed' | 'changed' | 'cancelled'>('all');
-  const [typeTabSelected, setTypeTabSelected] = useState<'all' | 'flight' | 'accommodation' | 'car-rental'>('all');
+  const [typeTabSelected, setTypeTabSelected] = useState<'all' | 'flight' | 'accommodation'>('all');
   const [travelListTab, setTravelListTab] = useState<'itinerary' | 'reservation'>('itinerary');
   const [travelPlanStatus, setTravelPlanStatus] = useState<'upcoming' | 'completed'>('upcoming');
   const [toggleStatus, setToggleStatus] = useState<'draft' | 'completed'>('draft');

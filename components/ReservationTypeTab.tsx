@@ -3,7 +3,7 @@ import { StyleSheet, View, Text, Pressable } from 'react-native';
 import { useTheme } from '@/hooks/useTheme';
 import { Typography } from '@/constants/theme';
 
-type ReservationType = 'all' | 'flight' | 'accommodation' | 'car-rental';
+type ReservationType = 'all' | 'flight' | 'accommodation';
 
 type Props = {
   selected: ReservationType;
@@ -14,7 +14,6 @@ const TABS: { key: ReservationType; label: string }[] = [
   { key: 'all', label: '전체' },
   { key: 'flight', label: '항공' },
   { key: 'accommodation', label: '숙소' },
-  { key: 'car-rental', label: '렌트카' },
 ];
 
 export function ReservationTypeTab({ selected, onSelect }: Props) {
