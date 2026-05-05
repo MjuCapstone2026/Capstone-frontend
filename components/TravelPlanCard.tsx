@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, View, Text, Pressable } from 'react-native';
 import { useTheme } from '@/hooks/useTheme';
 import { Typography, BorderRadius, Elevation } from '@/constants/theme';
+import { StatusToggle } from '@/components/ui/StatusToggle';
 import IcPlan from '@/assets/icons/ic_plan.svg';
 import IcPin from '@/assets/icons/ic_pin.svg';
 import IcClock from '@/assets/icons/ic_clock.svg';
@@ -29,12 +30,6 @@ export function TravelPlanCard({
 }: Props) {
   const { colors, scheme } = useTheme();
 
-  const isCompleted = status === 'completed';
-  const statusBg = isCompleted ? colors.successBg : colors.warningBg;
-  const statusTextColor = isCompleted ? colors.success : colors.warning;
-  const statusLabel = isCompleted ? '완료' : '예정';
-  const circleColor = scheme === 'light' ? colors.cardBg : colors.textTitle;
-
   return (
     <Pressable
       onPress={onPress}
@@ -50,30 +45,10 @@ export function TravelPlanCard({
             <Text style={[styles.title, { color: colors.textTitle }]} numberOfLines={2}>
               {title}
             </Text>
-            <Pressable
-              onPress={onStatusToggle}
-              style={[styles.statusPill, { backgroundColor: statusBg, borderColor: colors.divider }]}
-            >
-              {({ pressed: pillPressed }) => (
-                <>
-                  {isCompleted && (
-                    <View style={[styles.statusCircle, { backgroundColor: circleColor }, Elevation[scheme][2]]} />
-                  )}
-                  <Text style={[styles.statusText, { color: statusTextColor }]}>{statusLabel}</Text>
-                  {!isCompleted && (
-                    <View style={[styles.statusCircle, { backgroundColor: circleColor }, Elevation[scheme][2]]} />
-                  )}
-                  {pillPressed && (
-                    <View
-                      style={[
-                        StyleSheet.absoluteFill,
-                        { backgroundColor: colors.pressOverlay, borderRadius: BorderRadius.full },
-                      ]}
-                    />
-                  )}
-                </>
-              )}
-            </Pressable>
+            <StatusToggle
+              status={status === 'completed' ? 'completed' : 'draft'}
+              onToggle={onStatusToggle}
+            />
           </View>
           <View style={styles.infoRows}>
             <View style={styles.infoRow}>
@@ -118,24 +93,6 @@ const styles = StyleSheet.create({
   title: {
     ...Typography['heading-md'],
     flex: 1,
-  },
-  statusPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: BorderRadius.full,
-    borderWidth: 1,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    gap: 6,
-    overflow: 'hidden',
-  },
-  statusText: {
-    ...Typography['body-sm'],
-  },
-  statusCircle: {
-    width: 18,
-    height: 18,
-    borderRadius: BorderRadius.full,
   },
   infoRows: {
     gap: 8,
