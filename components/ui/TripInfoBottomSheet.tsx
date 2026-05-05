@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -33,6 +31,7 @@ const AGE_OPTIONS = [
   '만 11세',
   '만 12세',
 ] as const;
+const MAX_PEOPLE_COUNT = 15;
 type AgeOption = (typeof AGE_OPTIONS)[number];
 
 export type TripInfo = {
@@ -332,11 +331,10 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, onSubmit, on
       statusBarTranslucent
       onRequestClose={onClose}
     >
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={[styles.scrim, { backgroundColor: colors.scrimModal }]}>
-          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+      <View style={[styles.scrim, { backgroundColor: colors.scrimModal }]}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
 
-          <View style={[styles.sheet, { backgroundColor: colors.pageBg }]}>
+        <View style={[styles.sheet, { backgroundColor: colors.pageBg }]}>
             <View style={[styles.handle, { backgroundColor: colors.textCaption }]} />
 
             <ScrollView
@@ -423,13 +421,13 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, onSubmit, on
                       value={adults}
                       min={1}
                       onDecrement={() => setAdults(value => Math.max(1, value - 1))}
-                      onIncrement={() => setAdults(value => value + 1)}
+                      onIncrement={() => setAdults(value => Math.min(MAX_PEOPLE_COUNT, value + 1))}
                     />
                     <StepperRow
                       label="아동"
                       value={children}
                       onDecrement={() => updateChildren(children - 1)}
-                      onIncrement={() => updateChildren(children + 1)}
+                      onIncrement={() => updateChildren(Math.min(MAX_PEOPLE_COUNT, children + 1))}
                     />
                     {childAges.map((age, index) => (
                       <View
@@ -494,6 +492,7 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, onSubmit, on
               <View style={styles.budgetGroup}>
                 <Text style={[styles.fieldLabel, { color: colors.textSub }]}>예산</Text>
                 <View style={styles.budgetControl}>
+                  <Text style={[styles.budgetApprox, { color: colors.textCaption }]}>약</Text>
                   <View style={[styles.budgetInputBox, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}>
                     <TextInput
                       value={budget}
@@ -507,35 +506,34 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, onSubmit, on
                   <Text style={[styles.budgetUnit, { color: colors.textCaption }]}>만원</Text>
                 </View>
               </View>
-            </ScrollView>
 
-            <View style={[styles.footer, { paddingBottom: footerBottom }]}>
-              <Pressable
-                onPress={handleSubmit}
-                disabled={!isValid}
-                style={[
-                  styles.primaryButton,
-                  {
-                    backgroundColor: isValid ? colors.primary : colors.secondarySurface,
-                    borderColor: isValid ? colors.primaryActive : colors.divider,
-                  },
-                ]}
-              >
-                {({ pressed }) => (
-                  <>
-                    <Text style={[styles.primaryButtonText, { color: isValid ? colors.pageBg : colors.textDisabled }]}>
-                      {buttonLabel}
-                    </Text>
-                    {pressed && isValid && (
-                      <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay, borderRadius: BorderRadius.md }]} />
-                    )}
-                  </>
-                )}
-              </Pressable>
-            </View>
-          </View>
+              <View style={[styles.footer, { paddingBottom: footerBottom }]}>
+                <Pressable
+                  onPress={handleSubmit}
+                  disabled={!isValid}
+                  style={[
+                    styles.primaryButton,
+                    {
+                      backgroundColor: isValid ? colors.primary : colors.secondarySurface,
+                      borderColor: isValid ? colors.primaryActive : colors.divider,
+                    },
+                  ]}
+                >
+                  {({ pressed }) => (
+                    <>
+                      <Text style={[styles.primaryButtonText, { color: isValid ? colors.pageBg : colors.textDisabled }]}>
+                        {buttonLabel}
+                      </Text>
+                      {pressed && isValid && (
+                        <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay, borderRadius: BorderRadius.md }]} />
+                      )}
+                    </>
+                  )}
+                </Pressable>
+              </View>
+            </ScrollView>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }
@@ -774,6 +772,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: 12,
+  },
+  budgetApprox: {
+    ...Typography['heading-sm'],
   },
   budgetInputBox: {
     alignItems: 'center',
