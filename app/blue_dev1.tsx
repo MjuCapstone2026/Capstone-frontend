@@ -5,6 +5,7 @@ import { Typography } from '@/constants/theme';
 import { ReservationStatusFilter } from '@/components/ReservationStatusFilter';
 import { ReservationTypeTab } from '@/components/ReservationTypeTab';
 import { TravelListTabBar } from '@/components/TravelListTabBar';
+import { TravelPlanCard } from '@/components/TravelPlanCard';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   const { colors } = useTheme();
@@ -23,9 +24,21 @@ export default function BlueDev1Screen() {
   const [statusFilterSelected, setStatusFilterSelected] = useState<'all' | 'confirmed' | 'changed' | 'cancelled'>('all');
   const [typeTabSelected, setTypeTabSelected] = useState<'all' | 'flight' | 'accommodation' | 'car-rental'>('all');
   const [travelListTab, setTravelListTab] = useState<'itinerary' | 'reservation'>('itinerary');
+  const [travelPlanStatus, setTravelPlanStatus] = useState<'upcoming' | 'completed'>('upcoming');
 
   return (
     <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.pageBg }]}>
+      <Section title='TravelPlanCard'>
+        <TravelPlanCard
+          title="제주도 3박 4일 여행"
+          startDate="2026.04.10"
+          destination="제주도"
+          duration="3박 4일"
+          status={travelPlanStatus}
+          onPress={() => {}}
+          onStatusToggle={() => setTravelPlanStatus(s => s === 'upcoming' ? 'completed' : 'upcoming')}
+        />
+      </Section>
       <Section title='TravelListTabBar'>
         <TravelListTabBar tab={travelListTab} onTabChange={setTravelListTab} />
       </Section>
