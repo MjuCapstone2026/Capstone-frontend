@@ -4,6 +4,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { Typography } from '@/constants/theme';
 import { ReservationStatusFilter } from '@/components/ReservationStatusFilter';
 import { ReservationTypeTab } from '@/components/ReservationTypeTab';
+import { TravelListTabBar } from '@/components/TravelListTabBar';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   const { colors } = useTheme();
@@ -21,9 +22,13 @@ export default function BlueDev1Screen() {
   const { colors } = useTheme();
   const [statusFilterSelected, setStatusFilterSelected] = useState<'all' | 'confirmed' | 'changed' | 'cancelled'>('all');
   const [typeTabSelected, setTypeTabSelected] = useState<'all' | 'flight' | 'accommodation' | 'car-rental'>('all');
+  const [travelListTab, setTravelListTab] = useState<'itinerary' | 'reservation'>('itinerary');
 
   return (
     <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.pageBg }]}>
+      <Section title='TravelListTabBar'>
+        <TravelListTabBar tab={travelListTab} onTabChange={setTravelListTab} />
+      </Section>
       <Section title='ReservationStatusFilter'>
         <ReservationStatusFilter selected={statusFilterSelected} onSelect={setStatusFilterSelected} />
       </Section>
