@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, View, Text, Pressable } from 'react-native';
 import { useTheme } from '@/hooks/useTheme';
 import { Typography, BorderRadius, Elevation } from '@/constants/theme';
+import { ScheduleStatusBadge } from '@/components/ui/ScheduleStatusBadge';
 
 type TravelStatus = 'upcoming' | 'completed';
 
@@ -17,21 +18,6 @@ type Props = {
   onTravelPress: (id: string | number) => void;
   onMorePress: () => void;
 };
-
-function StatusBadge({ status }: { status: TravelStatus }) {
-  const { colors } = useTheme();
-
-  const isUpcoming = status === 'upcoming';
-  const bg = isUpcoming ? colors.successBg : colors.secondarySurface;
-  const textColor = isUpcoming ? colors.success : colors.textCaption;
-  const label = isUpcoming ? '예정' : '완료';
-
-  return (
-    <View style={[styles.badge, { backgroundColor: bg, borderColor: colors.divider }]}>
-      <Text style={[styles.badgeLabel, { color: textColor }]}>{label}</Text>
-    </View>
-  );
-}
 
 export function RecentTravelSection({ travels, onTravelPress, onMorePress }: Props) {
   const { colors, scheme } = useTheme();
@@ -74,7 +60,7 @@ export function RecentTravelSection({ travels, onTravelPress, onMorePress }: Pro
                   <Text style={[styles.travelTitle, { color: colors.textTitle }]} numberOfLines={1}>
                     {travel.title}
                   </Text>
-                  <StatusBadge status={travel.status} />
+                  <ScheduleStatusBadge status={travel.status === 'upcoming' ? 'draft' : 'completed'} />
                 </View>
                 <Text style={[styles.dateRange, { color: colors.textSub }]}>{travel.dateRange}</Text>
 
@@ -127,16 +113,6 @@ const styles = StyleSheet.create({
   },
   dateRange: {
     ...Typography['body-md'],
-  },
-  badge: {
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    alignSelf: 'flex-start',
-  },
-  badgeLabel: {
-    ...Typography['caption'],
   },
   overlay: {
     borderRadius: BorderRadius.lg,

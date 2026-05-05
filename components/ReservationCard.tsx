@@ -3,6 +3,7 @@ import { StyleSheet, View, Text } from 'react-native';
 import { useTheme } from '@/hooks/useTheme';
 import { Typography, BorderRadius, Elevation } from '@/constants/theme';
 import { BookedByBadge } from '@/components/ui/BookedByBadge';
+import { ReservationStatusBadge } from '@/components/ui/ReservationStatusBadge';
 import IcRentalCar from '@/assets/icons/ic_rental_car.svg';
 import IcAirplane from '@/assets/icons/ic_airplane.svg';
 import IcLodging from '@/assets/icons/ic_lodging.svg';
@@ -54,12 +55,6 @@ const TYPE_CONFIG = {
   car:     { label: '렌트카', headerColorKey: 'carRentalHeader' as const },
   flight:  { label: '항공편', headerColorKey: 'flightHeader' as const },
   lodging: { label: '숙소',   headerColorKey: 'accommodationHeader' as const },
-};
-
-const STATUS_CONFIG: Record<ReservationStatus, { label: string; colorKey: 'success' | 'warning' | 'danger' }> = {
-  confirmed: { label: '확정', colorKey: 'success' },
-  changed:   { label: '변경', colorKey: 'warning' },
-  cancelled: { label: '취소', colorKey: 'danger' },
 };
 
 function TypeIcon({ type, color }: { type: Props['type']; color: string }) {
@@ -143,7 +138,6 @@ export function ReservationCard(props: Props) {
   const isCancelled = props.status === 'cancelled';
   const headerContentColor = scheme === 'light' ? colors.cardBg : colors.textTitle;
   const { label: typeLabel, headerColorKey } = TYPE_CONFIG[props.type];
-  const { label: statusLabel, colorKey: statusColorKey } = STATUS_CONFIG[props.status];
 
   return (
     <View
@@ -157,10 +151,7 @@ export function ReservationCard(props: Props) {
         <TypeIcon type={props.type} color={headerContentColor} />
         <Text style={[styles.headerLabel, { color: headerContentColor }]}>{typeLabel}</Text>
         <View style={styles.spacer} />
-        <View style={styles.statusBadge}>
-          <View style={[styles.statusDot, { backgroundColor: colors[statusColorKey] }]} />
-          <Text style={[styles.headerLabel, { color: headerContentColor }]}>{statusLabel}</Text>
-        </View>
+        <ReservationStatusBadge status={props.status} />
       </View>
 
       <View style={styles.body}>
@@ -213,16 +204,6 @@ const styles = StyleSheet.create({
   },
   spacer: {
     flex: 1,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  statusDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
   },
   body: {
     padding: 16,
