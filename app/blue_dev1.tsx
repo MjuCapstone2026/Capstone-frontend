@@ -10,6 +10,7 @@ import { TypeMessageWindow } from '@/components/TypeMessageWindow';
 import { ReservationStatusBadge } from '@/components/ui/ReservationStatusBadge';
 import { ScheduleStatusBadge } from '@/components/ui/ScheduleStatusBadge';
 import { StatusToggle } from '@/components/ui/StatusToggle';
+import { TripInfoBottomSheet } from '@/components/ui/TripInfoBottomSheet';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   const { colors } = useTheme();
@@ -30,9 +31,29 @@ export default function BlueDev1Screen() {
   const [travelListTab, setTravelListTab] = useState<'itinerary' | 'reservation'>('itinerary');
   const [travelPlanStatus, setTravelPlanStatus] = useState<'upcoming' | 'completed'>('upcoming');
   const [toggleStatus, setToggleStatus] = useState<'draft' | 'completed'>('draft');
+  const [tripSheetVisible, setTripSheetVisible] = useState(false);
+  const [tripSheetMode, setTripSheetMode] = useState<'create' | 'edit'>('create');
 
   return (
     <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.pageBg }]}>
+      <Section title='TripInfoBottomSheet'>
+        <View style={{ gap: 8, flexDirection: 'row' }}>
+          <StatusToggle
+            status='draft'
+            onToggle={() => { setTripSheetMode('create'); setTripSheetVisible(true); }}
+          />
+          <StatusToggle
+            status='completed'
+            onToggle={() => { setTripSheetMode('edit'); setTripSheetVisible(true); }}
+          />
+        </View>
+        <TripInfoBottomSheet
+          visible={tripSheetVisible}
+          mode={tripSheetMode}
+          onSubmit={(info) => { console.log('submitted:', info); setTripSheetVisible(false); }}
+          onClose={() => setTripSheetVisible(false)}
+        />
+      </Section>
       <Section title='StatusToggle'>
         <StatusToggle
           status={toggleStatus}
