@@ -25,7 +25,10 @@ export function StatusToggle({ status, onToggle }: Props) {
 
   return (
     <Pressable
-      onPress={onToggle}
+      onPress={(event) => {
+        event.stopPropagation();
+        onToggle();
+      }}
       style={[
         styles.container,
         { backgroundColor: bgColor, borderColor: colors.divider },

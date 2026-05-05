@@ -800,8 +800,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     height: 52,
     justifyContent: 'center',
+    maxWidth: 320,
     overflow: 'hidden',
-    width: 320,
+    width: '100%',
   },
   primaryButtonText: {
     ...Typography['heading-sm'],

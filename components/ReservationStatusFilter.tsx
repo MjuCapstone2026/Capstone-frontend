@@ -43,7 +43,7 @@ export function ReservationStatusFilter({ selected, onSelect }: Props) {
             style={[
               styles.chip,
               { backgroundColor: chipBg, borderColor: colors.divider },
-              Elevation[scheme][2],
+              isActive && Elevation[scheme][2],
             ]}
           >
             {({ pressed }) => (
