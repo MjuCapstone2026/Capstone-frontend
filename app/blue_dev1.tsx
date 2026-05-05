@@ -7,6 +7,8 @@ import { ReservationTypeTab } from '@/components/ReservationTypeTab';
 import { TravelListTabBar } from '@/components/TravelListTabBar';
 import { TravelPlanCard } from '@/components/TravelPlanCard';
 import { TypeMessageWindow } from '@/components/TypeMessageWindow';
+import { ReservationStatusBadge } from '@/components/ui/ReservationStatusBadge';
+import { ScheduleStatusBadge } from '@/components/ui/ScheduleStatusBadge';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   const { colors } = useTheme();
@@ -29,6 +31,19 @@ export default function BlueDev1Screen() {
 
   return (
     <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.pageBg }]}>
+      <Section title='ReservationStatusBadge'>
+        <View style={styles.badgePreviewBg}>
+          <ReservationStatusBadge status="confirmed" />
+          <ReservationStatusBadge status="changed" />
+          <ReservationStatusBadge status="cancelled" />
+        </View>
+      </Section>
+      <Section title='ScheduleStatusBadge'>
+        <View style={styles.badgePreviewBg}>
+          <ScheduleStatusBadge status="draft" />
+          <ScheduleStatusBadge status="completed" />
+        </View>
+      </Section>
       <Section title='TypeMessageWindow'>
         <TypeMessageWindow onSend={(message) => console.log('sent:', message)} />
       </Section>
@@ -72,6 +87,12 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   sectionContent: {
+    gap: 8,
+  },
+  badgePreviewBg: {
+    backgroundColor: '#4A4A4A',
+    padding: 12,
+    borderRadius: 8,
     gap: 8,
   },
 });
