@@ -54,6 +54,7 @@ export function OverflowMenu({
               top: position.top,
               right: position.right,
               backgroundColor: colors.cardBg,
+              borderColor: colors.divider,
             },
             Elevation[scheme][4],
           ]}
@@ -99,6 +100,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 160,
     borderRadius: BorderRadius.md,
+    borderWidth: 1,
     overflow: 'hidden',
   },
   divider: {
