@@ -66,5 +66,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     textAlignVertical: 'center',
     ...Typography['body-lg'],
+    lineHeight: undefined,
   },
 });
