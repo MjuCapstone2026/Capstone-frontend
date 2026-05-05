@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useTheme } from '@/hooks/useTheme';
 import { Typography } from '@/constants/theme';
 import { ReservationStatusFilter } from '@/components/ReservationStatusFilter';
+import { ReservationTypeTab } from '@/components/ReservationTypeTab';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   const { colors } = useTheme();
@@ -16,20 +17,18 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function ReservationStatusFilterDemo() {
-  const [selected, setSelected] = useState<'all' | 'confirmed' | 'changed' | 'cancelled'>('all');
-  return <ReservationStatusFilter selected={selected} onSelect={setSelected} />;
-}
-
 export default function BlueDev1Screen() {
   const { colors } = useTheme();
+  const [statusFilterSelected, setStatusFilterSelected] = useState<'all' | 'confirmed' | 'changed' | 'cancelled'>('all');
+  const [typeTabSelected, setTypeTabSelected] = useState<'all' | 'flight' | 'accommodation' | 'car-rental'>('all');
+
   return (
     <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.pageBg }]}>
       <Section title='ReservationStatusFilter'>
-        <ReservationStatusFilterDemo />
+        <ReservationStatusFilter selected={statusFilterSelected} onSelect={setStatusFilterSelected} />
       </Section>
-      <Section title='각 컴포넌트 이름'>
-        {/* 여기에 컴포넌트 추가 */}
+      <Section title='ReservationTypeTab'>
+        <ReservationTypeTab selected={typeTabSelected} onSelect={setTypeTabSelected} />
       </Section>
     </ScrollView>
   );
