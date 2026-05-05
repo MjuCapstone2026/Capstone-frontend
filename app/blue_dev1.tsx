@@ -1,6 +1,8 @@
 import { ScrollView, StyleSheet, View, Text } from 'react-native';
+import { useState } from 'react';
 import { useTheme } from '@/hooks/useTheme';
 import { Typography } from '@/constants/theme';
+import { ReservationStatusFilter } from '@/components/ReservationStatusFilter';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   const { colors } = useTheme();
@@ -14,12 +16,17 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+function ReservationStatusFilterDemo() {
+  const [selected, setSelected] = useState<'all' | 'confirmed' | 'changed' | 'cancelled'>('all');
+  return <ReservationStatusFilter selected={selected} onSelect={setSelected} />;
+}
+
 export default function BlueDev1Screen() {
   const { colors } = useTheme();
   return (
     <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.pageBg }]}>
-      <Section title='각 컴포넌트 이름'>
-        {/* 여기에 컴포넌트 추가 */}
+      <Section title='ReservationStatusFilter'>
+        <ReservationStatusFilterDemo />
       </Section>
       <Section title='각 컴포넌트 이름'>
         {/* 여기에 컴포넌트 추가 */}
