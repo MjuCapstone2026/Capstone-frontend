@@ -6,6 +6,7 @@ import { ReservationStatusFilter } from '@/components/ReservationStatusFilter';
 import { ReservationTypeTab } from '@/components/ReservationTypeTab';
 import { TravelListTabBar } from '@/components/TravelListTabBar';
 import { TravelPlanCard } from '@/components/TravelPlanCard';
+import { TypeMessageWindow } from '@/components/TypeMessageWindow';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   const { colors } = useTheme();
@@ -28,6 +29,9 @@ export default function BlueDev1Screen() {
 
   return (
     <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.pageBg }]}>
+      <Section title='TypeMessageWindow'>
+        <TypeMessageWindow onSend={(message) => console.log('sent:', message)} />
+      </Section>
       <Section title='TravelPlanCard'>
         <TravelPlanCard
           title="제주도 3박 4일 여행"
