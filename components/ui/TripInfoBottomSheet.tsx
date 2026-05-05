@@ -1,30 +1,37 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  StyleSheet,
-  View,
-  Text,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
+  StyleSheet,
+  Text,
   TextInput,
-  KeyboardAvoidingView,
-  Platform,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BorderRadius, Elevation, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
-import { Typography, BorderRadius, Elevation } from '@/constants/theme';
-import IcSearch from '@/assets/icons/ic_search.svg';
-import IcPlan from '@/assets/icons/ic_plan.svg';
 import IcChevronDown from '@/assets/icons/ic_chevron_down.svg';
+import IcPlan from '@/assets/icons/ic_plan.svg';
+import IcSearch from '@/assets/icons/ic_search.svg';
 
-// ── Types ──────────────────────────────────────────────────
 type Mode = 'create' | 'edit';
 
 const AGE_OPTIONS = [
-  '영아 (0~2세)',
-  '유아 (3~6세)',
-  '어린이 (7~12세)',
-  '청소년 (13~17세)',
+  '만 1세',
+  '만 2세',
+  '만 3세',
+  '만 4세',
+  '만 5세',
+  '만 6세',
+  '만 7세',
+  '만 8세',
+  '만 9세',
+  '만 10세',
+  '만 11세',
+  '만 12세',
 ] as const;
 type AgeOption = (typeof AGE_OPTIONS)[number];
 
@@ -46,12 +53,25 @@ type Props = {
   onClose: () => void;
 };
 
-// ── Helpers ────────────────────────────────────────────────
+type CalendarProps = {
+  startDate: Date | null;
+  endDate: Date | null;
+  month: Date;
+  onDayPress: (day: Date) => void;
+  onPrevMonth: () => void;
+  onNextMonth: () => void;
+};
+
+type StepperRowProps = {
+  label: string;
+  value: number;
+  min?: number;
+  onDecrement: () => void;
+  onIncrement: () => void;
+};
+
 function formatDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}.${m}.${d}`;
+  return `${date.getMonth() + 1}월 ${date.getDate()}일`;
 }
 
 function isSameDay(a: Date, b: Date): boolean {
@@ -63,34 +83,26 @@ function isSameDay(a: Date, b: Date): boolean {
 }
 
 function isBetween(date: Date, start: Date, end: Date): boolean {
-  const t = date.getTime();
-  return t > start.getTime() && t < end.getTime();
+  const time = date.getTime();
+  return time > start.getTime() && time < end.getTime();
 }
 
-// ── Calendar ───────────────────────────────────────────────
-type CalendarProps = {
-  startDate: Date | null;
-  endDate: Date | null;
-  month: Date;
-  onDayPress: (day: Date) => void;
-  onPrevMonth: () => void;
-  onNextMonth: () => void;
-};
+function normalizeAges(children: number, ages?: AgeOption[]): (AgeOption | '')[] {
+  return Array.from({ length: children }, (_, index) => ages?.[index] ?? '');
+}
 
 function Calendar({ startDate, endDate, month, onDayPress, onPrevMonth, onNextMonth }: CalendarProps) {
-  const { colors } = useTheme();
-
+  const { colors, scheme } = useTheme();
   const year = month.getFullYear();
   const mon = month.getMonth();
   const firstDay = new Date(year, mon, 1).getDay();
   const daysInMonth = new Date(year, mon + 1, 0).getDate();
-  const monthLabel = `${year}년 ${mon + 1}월`;
-
-  const blanks = Array(firstDay).fill(null);
-  const days = Array.from({ length: daysInMonth }, (_, i) => new Date(year, mon, i + 1));
-  const cells: (Date | null)[] = [...blanks, ...days];
-
+  const cells: (Date | null)[] = [
+    ...Array(firstDay).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, index) => new Date(year, mon, index + 1)),
+  ];
   const weeks: (Date | null)[][] = [];
+
   for (let i = 0; i < cells.length; i += 7) {
     const week = cells.slice(i, i + 7);
     while (week.length < 7) week.push(null);
@@ -98,10 +110,9 @@ function Calendar({ startDate, endDate, month, onDayPress, onPrevMonth, onNextMo
   }
 
   return (
-    <View style={styles.calendar}>
-      {/* Month navigation */}
+    <View style={[styles.calendarPanel, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}>
       <View style={styles.calendarHeader}>
-        <Pressable onPress={onPrevMonth} style={styles.calendarNavBtn}>
+        <Pressable onPress={onPrevMonth} style={styles.calendarNavButton}>
           {({ pressed }) => (
             <>
               <View style={styles.chevronLeft}>
@@ -113,8 +124,10 @@ function Calendar({ startDate, endDate, month, onDayPress, onPrevMonth, onNextMo
             </>
           )}
         </Pressable>
-        <Text style={[styles.calendarMonthLabel, { color: colors.textTitle }]}>{monthLabel}</Text>
-        <Pressable onPress={onNextMonth} style={styles.calendarNavBtn}>
+        <Text style={[styles.calendarMonth, { color: colors.textTitle }]}>
+          {year}년 {mon + 1}월
+        </Text>
+        <Pressable onPress={onNextMonth} style={styles.calendarNavButton}>
           {({ pressed }) => (
             <>
               <View style={styles.chevronRight}>
@@ -128,53 +141,41 @@ function Calendar({ startDate, endDate, month, onDayPress, onPrevMonth, onNextMo
         </Pressable>
       </View>
 
-      {/* Day-of-week header */}
       <View style={styles.calendarRow}>
-        {['일', '월', '화', '수', '목', '금', '토'].map(d => (
-          <Text key={d} style={[styles.calendarDayHeader, { color: colors.textCaption }]}>
-            {d}
+        {['일', '월', '화', '수', '목', '금', '토'].map(day => (
+          <Text key={day} style={[styles.calendarDayHeader, { color: colors.textCaption }]}>
+            {day}
           </Text>
         ))}
       </View>
 
-      {/* Day grid */}
-      {weeks.map((week, wi) => (
-        <View key={wi} style={styles.calendarRow}>
-          {week.map((day, di) => {
-            if (!day) return <View key={di} style={styles.calendarCell} />;
+      {weeks.map((week, weekIndex) => (
+        <View key={weekIndex} style={styles.calendarRow}>
+          {week.map((day, dayIndex) => {
+            if (!day) return <View key={dayIndex} style={styles.calendarCell} />;
 
-            const isStart = startDate !== null && isSameDay(day, startDate);
-            const isEnd = endDate !== null && isSameDay(day, endDate);
-            const inRange = startDate !== null && endDate !== null && isBetween(day, startDate, endDate);
+            const isStart = !!startDate && isSameDay(day, startDate);
+            const isEnd = !!endDate && isSameDay(day, endDate);
+            const inRange = !!startDate && !!endDate && isBetween(day, startDate, endDate);
             const isSelected = isStart || isEnd;
 
             return (
               <Pressable
-                key={di}
+                key={dayIndex}
                 onPress={() => onDayPress(day)}
-                style={[
-                  styles.calendarCell,
-                  inRange && { backgroundColor: colors.primaryTint },
-                ]}
+                style={[styles.calendarCell, inRange && { backgroundColor: colors.primaryTint }]}
               >
                 {({ pressed }) => (
                   <View
                     style={[
-                      styles.calendarDayInner,
+                      styles.calendarDay,
                       isSelected && { backgroundColor: colors.primary },
+                      pressed && !isSelected && { backgroundColor: colors.pressOverlay },
                     ]}
                   >
-                    <Text
-                      style={[
-                        styles.calendarDayText,
-                        { color: isSelected ? colors.pageBg : colors.textTitle },
-                      ]}
-                    >
+                    <Text style={[styles.calendarDayText, { color: isSelected ? colors.pageBg : colors.textTitle }]}>
                       {day.getDate()}
                     </Text>
-                    {pressed && (
-                      <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay }]} />
-                    )}
                   </View>
                 )}
               </Pressable>
@@ -186,39 +187,22 @@ function Calendar({ startDate, endDate, month, onDayPress, onPrevMonth, onNextMo
   );
 }
 
-// ── Stepper ────────────────────────────────────────────────
-type StepperRowProps = {
-  label: string;
-  value: number;
-  min?: number;
-  onDecrement: () => void;
-  onIncrement: () => void;
-  hasBorderTop?: boolean;
-};
-
-function StepperRow({ label, value, min = 0, onDecrement, onIncrement, hasBorderTop }: StepperRowProps) {
-  const { colors, scheme } = useTheme();
+function StepperRow({ label, value, min = 0, onDecrement, onIncrement }: StepperRowProps) {
+  const { colors } = useTheme();
   const canDecrement = value > min;
 
   return (
-    <View
-      style={[
-        styles.stepperRow,
-        hasBorderTop && { borderTopWidth: 1, borderTopColor: colors.divider },
-      ]}
-    >
+    <View style={styles.stepperRow}>
       <Text style={[styles.stepperLabel, { color: colors.textTitle }]}>{label}</Text>
       <View style={styles.stepperControls}>
         <Pressable
-          onPress={onDecrement}
           disabled={!canDecrement}
-          style={[styles.stepperBtn, { borderColor: colors.divider }, Elevation[scheme][1]]}
+          onPress={onDecrement}
+          style={[styles.stepperButton, { borderColor: colors.divider, backgroundColor: colors.cardBg }]}
         >
           {({ pressed }) => (
             <>
-              <Text style={[styles.stepperBtnText, { color: canDecrement ? colors.textTitle : colors.textDisabled }]}>
-                −
-              </Text>
+              <Text style={[styles.stepperIcon, { color: canDecrement ? colors.textCaption : colors.textDisabled }]}>-</Text>
               {pressed && canDecrement && (
                 <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay, borderRadius: BorderRadius.full }]} />
               )}
@@ -228,11 +212,11 @@ function StepperRow({ label, value, min = 0, onDecrement, onIncrement, hasBorder
         <Text style={[styles.stepperValue, { color: colors.textTitle }]}>{value}</Text>
         <Pressable
           onPress={onIncrement}
-          style={[styles.stepperBtn, { borderColor: colors.divider }, Elevation[scheme][1]]}
+          style={[styles.stepperButton, { borderColor: colors.divider, backgroundColor: colors.cardBg }]}
         >
           {({ pressed }) => (
             <>
-              <Text style={[styles.stepperBtnText, { color: colors.textTitle }]}>+</Text>
+              <Text style={[styles.stepperIcon, { color: colors.textCaption }]}>+</Text>
               {pressed && (
                 <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay, borderRadius: BorderRadius.full }]} />
               )}
@@ -244,26 +228,41 @@ function StepperRow({ label, value, min = 0, onDecrement, onIncrement, hasBorder
   );
 }
 
-// ── Main Component ─────────────────────────────────────────
 export function TripInfoBottomSheet({ visible, mode, initialValues, onSubmit, onClose }: Props) {
   const { colors, scheme } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const [destination, setDestination] = useState(initialValues?.destination ?? '');
-  const [startDate, setStartDate] = useState<Date | null>(initialValues?.startDate ?? null);
-  const [endDate, setEndDate] = useState<Date | null>(initialValues?.endDate ?? null);
-  const [adults, setAdults] = useState(initialValues?.adults ?? 1);
-  const [children, setChildren] = useState(initialValues?.children ?? 0);
-  const [childAges, setChildAges] = useState<(AgeOption | '')[]>(initialValues?.childAges ?? []);
-  const [budget, setBudget] = useState(initialValues?.budget?.toString() ?? '');
-
+  const [destination, setDestination] = useState('');
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [adults, setAdults] = useState(1);
+  const [children, setChildren] = useState(0);
+  const [childAges, setChildAges] = useState<(AgeOption | '')[]>([]);
+  const [budget, setBudget] = useState('');
   const [calendarExpanded, setCalendarExpanded] = useState(false);
   const [peopleExpanded, setPeopleExpanded] = useState(false);
   const [activeAgeDropdown, setActiveAgeDropdown] = useState<number | null>(null);
-  const [calendarMonth, setCalendarMonth] = useState(initialValues?.startDate ?? new Date());
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
 
-  // Validation
-  const allChildAgesFilled = children === 0 || (childAges.length === children && childAges.every(a => a !== ''));
+  useEffect(() => {
+    if (!visible) return;
+
+    const nextChildren = initialValues?.children ?? 0;
+    setDestination(initialValues?.destination ?? '');
+    setStartDate(initialValues?.startDate ?? null);
+    setEndDate(initialValues?.endDate ?? null);
+    setAdults(initialValues?.adults ?? 1);
+    setChildren(nextChildren);
+    setChildAges(normalizeAges(nextChildren, initialValues?.childAges));
+    setBudget(initialValues?.budget ? String(initialValues.budget) : '');
+    setCalendarExpanded(false);
+    setPeopleExpanded(false);
+    setActiveAgeDropdown(null);
+    setCalendarMonth(initialValues?.startDate ?? new Date());
+  }, [initialValues, mode, visible]);
+
+  const allChildAgesFilled =
+    children === 0 || (childAges.length === children && childAges.every(age => age !== ''));
   const isValid =
     destination.trim() !== '' &&
     startDate !== null &&
@@ -272,37 +271,48 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, onSubmit, on
     allChildAgesFilled &&
     Number(budget) > 0;
 
-  // Calendar
+  const dateLabel =
+    startDate && endDate
+      ? `${formatDate(startDate)} ~ ${formatDate(endDate)}`
+      : startDate
+        ? `${formatDate(startDate)} ~ 종료일 선택`
+        : '날짜를 선택해주세요';
+  const peopleLabel = `성인 ${adults}명${children > 0 ? `, 아동 ${children}명` : ''}`;
+  const buttonLabel = mode === 'create' ? '채팅방 생성하기' : '수정하기';
+  const footerBottom = Math.max(insets.bottom, 16);
+
   const handleDayPress = (day: Date) => {
-    if (!startDate || (startDate && endDate)) {
+    if (!startDate || endDate) {
       setStartDate(day);
       setEndDate(null);
-    } else if (isSameDay(day, startDate)) {
-      setStartDate(null);
-    } else if (day < startDate) {
-      setStartDate(day);
-      setEndDate(null);
-    } else {
-      setEndDate(day);
-      setCalendarExpanded(false);
+      return;
     }
+
+    if (isSameDay(day, startDate)) {
+      setStartDate(null);
+      return;
+    }
+
+    if (day < startDate) {
+      setStartDate(day);
+      setEndDate(null);
+      return;
+    }
+
+    setEndDate(day);
+    setCalendarExpanded(false);
   };
 
-  // Children count with age array sync
   const updateChildren = (count: number) => {
-    const next = Math.max(0, count);
-    setChildren(next);
-    setChildAges(prev => {
-      if (next > prev.length) {
-        return [...prev, ...Array(next - prev.length).fill('')] as (AgeOption | '')[];
-      }
-      return prev.slice(0, next);
-    });
-    if (next === 0) setActiveAgeDropdown(null);
+    const nextChildren = Math.max(0, count);
+    setChildren(nextChildren);
+    setChildAges(prev => normalizeAges(nextChildren, prev.filter((age): age is AgeOption => age !== '')));
+    if (nextChildren === 0) setActiveAgeDropdown(null);
   };
 
   const handleSubmit = () => {
     if (!isValid || !startDate || !endDate) return;
+
     onSubmit({
       destination: destination.trim(),
       startDate,
@@ -314,314 +324,210 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, onSubmit, on
     });
   };
 
-  const inputElevation = Elevation[scheme][4];
-  const dateLabel =
-    startDate && endDate
-      ? `${formatDate(startDate)} ~ ${formatDate(endDate)}`
-      : startDate
-        ? `${formatDate(startDate)} ~ 종료일 선택`
-        : null;
-
   return (
-    <Modal transparent visible={visible} animationType="fade" statusBarTranslucent>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+    <Modal
+      transparent
+      visible={visible}
+      animationType="fade"
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={[styles.scrim, { backgroundColor: colors.scrimModal }]}>
           <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
 
           <View style={[styles.sheet, { backgroundColor: colors.pageBg }]}>
-            <Text style={[styles.sheetTitle, { color: colors.textTitle }]}>
-              여행 정보를 입력해주세요
-            </Text>
+            <View style={[styles.handle, { backgroundColor: colors.textCaption }]} />
+            <Text style={[styles.title, { color: colors.textTitle }]}>여행 정보를 입력해주세요</Text>
 
             <ScrollView
-              contentContainerStyle={styles.scrollContent}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
+              contentContainerStyle={[styles.content, { paddingBottom: 24 }]}
             >
-              {/* ── Destination ── */}
-              <View
-                style={[
-                  styles.inputRow,
-                  { backgroundColor: colors.cardBg, borderColor: colors.divider },
-                  inputElevation,
-                ]}
-              >
-                <View style={styles.fieldContent}>
-                  <Text style={[styles.fieldLabel, { color: colors.textCaption }]}>여행지</Text>
+              <View style={styles.fieldGroup}>
+                <Text style={[styles.fieldLabel, { color: colors.textSub }]}>여행지</Text>
+                <View style={[styles.inputBox, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}>
                   <TextInput
-                    style={[styles.fieldInput, { color: colors.textTitle }]}
-                    placeholder="여행지를 입력해주세요"
-                    placeholderTextColor={colors.textDisabled}
                     value={destination}
                     onChangeText={setDestination}
+                    placeholder="여행지를 입력해주세요"
+                    placeholderTextColor={colors.textDisabled}
+                    style={[styles.textInput, { color: colors.textTitle }]}
                   />
+                  <IcSearch width={20} height={20} color={destination ? colors.textTitle : colors.textCaption} />
                 </View>
-                <IcSearch
-                  width={20}
-                  height={20}
-                  color={destination ? colors.textTitle : colors.textCaption}
-                />
               </View>
 
-              {/* ── Date ── */}
-              <Pressable
-                onPress={() => {
-                  setCalendarExpanded(v => !v);
-                  setPeopleExpanded(false);
-                  setActiveAgeDropdown(null);
-                }}
-                style={[
-                  styles.inputRow,
-                  { backgroundColor: colors.cardBg, borderColor: colors.divider },
-                  inputElevation,
-                ]}
-              >
-                {({ pressed }) => (
-                  <>
-                    <View style={styles.fieldContent}>
-                      <Text style={[styles.fieldLabel, { color: colors.textCaption }]}>여행 날짜</Text>
-                      <Text
-                        style={[
-                          styles.fieldValue,
-                          { color: dateLabel ? colors.textTitle : colors.textDisabled },
-                        ]}
-                      >
-                        {dateLabel ?? '날짜를 선택해주세요'}
-                      </Text>
-                    </View>
-                    <IcPlan
-                      width={20}
-                      height={20}
-                      color={startDate ? colors.textTitle : colors.textCaption}
-                    />
-                    {pressed && (
-                      <View
-                        style={[
-                          StyleSheet.absoluteFill,
-                          { backgroundColor: colors.pressOverlay, borderRadius: BorderRadius.lg },
-                        ]}
-                      />
-                    )}
-                  </>
-                )}
-              </Pressable>
-
-              {calendarExpanded && (
-                <Calendar
-                  startDate={startDate}
-                  endDate={endDate}
-                  month={calendarMonth}
-                  onDayPress={handleDayPress}
-                  onPrevMonth={() =>
-                    setCalendarMonth(m => new Date(m.getFullYear(), m.getMonth() - 1, 1))
-                  }
-                  onNextMonth={() =>
-                    setCalendarMonth(m => new Date(m.getFullYear(), m.getMonth() + 1, 1))
-                  }
-                />
-              )}
-
-              {/* ── People ── */}
-              <Pressable
-                onPress={() => {
-                  setPeopleExpanded(v => !v);
-                  setCalendarExpanded(false);
-                  setActiveAgeDropdown(null);
-                }}
-                style={[
-                  styles.inputRow,
-                  { backgroundColor: colors.cardBg, borderColor: colors.divider },
-                  inputElevation,
-                ]}
-              >
-                {({ pressed }) => (
-                  <>
-                    <View style={styles.fieldContent}>
-                      <Text style={[styles.fieldLabel, { color: colors.textCaption }]}>인원</Text>
-                      <Text style={[styles.fieldValue, { color: colors.textTitle }]}>
-                        성인 {adults}명{children > 0 ? `, 아동 ${children}명` : ''}
-                      </Text>
-                    </View>
-                    <View style={{ transform: [{ rotate: peopleExpanded ? '180deg' : '0deg' }] }}>
-                      <IcChevronDown width={20} height={20} color={colors.textCaption} />
-                    </View>
-                    {pressed && (
-                      <View
-                        style={[
-                          StyleSheet.absoluteFill,
-                          { backgroundColor: colors.pressOverlay, borderRadius: BorderRadius.lg },
-                        ]}
-                      />
-                    )}
-                  </>
-                )}
-              </Pressable>
-
-              {peopleExpanded && (
-                <View
-                  style={[
-                    styles.expandedPanel,
-                    { backgroundColor: colors.cardBg, borderColor: colors.divider },
-                    inputElevation,
-                  ]}
+              <View style={styles.fieldGroup}>
+                <Text style={[styles.fieldLabel, { color: colors.textSub }]}>날짜</Text>
+                <Pressable
+                  onPress={() => {
+                    setCalendarExpanded(value => !value);
+                    setPeopleExpanded(false);
+                    setActiveAgeDropdown(null);
+                  }}
+                  style={[styles.inputBox, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}
                 >
-                  <StepperRow
-                    label="성인"
-                    value={adults}
-                    min={1}
-                    onDecrement={() => setAdults(a => Math.max(1, a - 1))}
-                    onIncrement={() => setAdults(a => a + 1)}
+                  {({ pressed }) => (
+                    <>
+                      <Text style={[styles.inputValue, { color: startDate ? colors.textTitle : colors.textDisabled }]}>
+                        {dateLabel}
+                      </Text>
+                      <IcPlan width={20} height={20} color={startDate ? colors.textTitle : colors.textCaption} />
+                      {pressed && (
+                        <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay, borderRadius: BorderRadius.lg }]} />
+                      )}
+                    </>
+                  )}
+                </Pressable>
+                {calendarExpanded && (
+                  <Calendar
+                    startDate={startDate}
+                    endDate={endDate}
+                    month={calendarMonth}
+                    onDayPress={handleDayPress}
+                    onPrevMonth={() => setCalendarMonth(value => new Date(value.getFullYear(), value.getMonth() - 1, 1))}
+                    onNextMonth={() => setCalendarMonth(value => new Date(value.getFullYear(), value.getMonth() + 1, 1))}
                   />
-                  <StepperRow
-                    label="아동"
-                    value={children}
-                    min={0}
-                    onDecrement={() => updateChildren(children - 1)}
-                    onIncrement={() => updateChildren(children + 1)}
-                    hasBorderTop
-                  />
+                )}
+              </View>
 
-                  {childAges.map((age, idx) => (
-                    <View key={idx}>
-                      <Pressable
-                        onPress={() =>
-                          setActiveAgeDropdown(activeAgeDropdown === idx ? null : idx)
-                        }
-                        style={[styles.ageRow, { borderTopColor: colors.divider }]}
+              <View style={styles.fieldGroup}>
+                <Text style={[styles.fieldLabel, { color: colors.textSub }]}>인원</Text>
+                <Pressable
+                  onPress={() => {
+                    setPeopleExpanded(value => !value);
+                    setCalendarExpanded(false);
+                    setActiveAgeDropdown(null);
+                  }}
+                  style={[styles.inputBox, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}
+                >
+                  {({ pressed }) => (
+                    <>
+                      <Text style={[styles.inputValue, { color: colors.textTitle }]}>{peopleLabel}</Text>
+                      <View style={peopleExpanded && styles.chevronOpen}>
+                        <IcChevronDown width={20} height={20} color={peopleExpanded ? colors.textTitle : colors.textCaption} />
+                      </View>
+                      {pressed && (
+                        <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay, borderRadius: BorderRadius.lg }]} />
+                      )}
+                    </>
+                  )}
+                </Pressable>
+
+                {peopleExpanded && (
+                  <View style={[styles.peoplePanel, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}>
+                    <StepperRow
+                      label="성인"
+                      value={adults}
+                      min={1}
+                      onDecrement={() => setAdults(value => Math.max(1, value - 1))}
+                      onIncrement={() => setAdults(value => value + 1)}
+                    />
+                    <StepperRow
+                      label="아동"
+                      value={children}
+                      onDecrement={() => updateChildren(children - 1)}
+                      onIncrement={() => updateChildren(children + 1)}
+                    />
+                    {childAges.map((age, index) => (
+                      <View
+                        key={index}
+                        style={[
+                          styles.ageItem,
+                          activeAgeDropdown === index && styles.ageItemActive,
+                        ]}
                       >
-                        {({ pressed }) => (
-                          <>
-                            <Text style={[styles.stepperLabel, { color: colors.textTitle }]}>
-                              아동 {idx + 1} 나이
+                        <View style={[styles.ageDivider, { backgroundColor: colors.divider }]} />
+                        <Pressable
+                          onPress={() => setActiveAgeDropdown(activeAgeDropdown === index ? null : index)}
+                          style={styles.ageRow}
+                        >
+                          <Text style={[styles.stepperLabel, { color: colors.textTitle }]}>아동 {index + 1}</Text>
+                          <View style={[styles.ageValueRow, { borderColor: colors.divider }]}>
+                            <Text style={[styles.ageValue, { color: age ? colors.textTitle : colors.textDisabled }]}>
+                              {age || '나이 선택'}
                             </Text>
-                            <View style={styles.ageValueRow}>
-                              <Text
+                            <View style={[styles.ageValueIcon, activeAgeDropdown === index && styles.chevronOpen]}>
+                              <IcChevronDown width={12} height={12} color={age ? colors.textTitle : colors.textCaption} />
+                            </View>
+                          </View>
+                        </Pressable>
+                        {activeAgeDropdown === index && (
+                          <View style={[styles.ageDropdown, { backgroundColor: colors.cardBg, borderColor: colors.divider }]}>
+                            {AGE_OPTIONS.map(option => (
+                              <Pressable
+                                key={option}
+                                onPress={() => {
+                                  const next = [...childAges];
+                                  next[index] = option;
+                                  setChildAges(next);
+                                  setActiveAgeDropdown(null);
+                                }}
                                 style={[
-                                  styles.ageValue,
-                                  { color: age ? colors.textTitle : colors.textDisabled },
+                                  styles.ageOption,
+                                  age === option && { backgroundColor: colors.primary },
+                                  { borderBottomColor: colors.divider },
                                 ]}
                               >
-                                {age || '선택해주세요'}
-                              </Text>
-                              <View
-                                style={{
-                                  transform: [{ rotate: activeAgeDropdown === idx ? '180deg' : '0deg' }],
-                                }}
-                              >
-                                <IcChevronDown width={16} height={16} color={colors.textCaption} />
-                              </View>
-                            </View>
-                            {pressed && (
-                              <View
-                                style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay }]}
-                              />
-                            )}
-                          </>
+                                {({ pressed }) => (
+                                  <>
+                                    <Text style={[styles.ageOptionText, { color: age === option ? colors.pageBg : colors.textTitle }]}>
+                                      {option}
+                                    </Text>
+                                    {pressed && (
+                                      <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay }]} />
+                                    )}
+                                  </>
+                                )}
+                              </Pressable>
+                            ))}
+                          </View>
                         )}
-                      </Pressable>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
 
-                      {activeAgeDropdown === idx && (
-                        <View
-                          style={[styles.ageDropdown, { borderTopColor: colors.divider, backgroundColor: colors.pageBg }]}
-                        >
-                          {AGE_OPTIONS.map(option => (
-                            <Pressable
-                              key={option}
-                              onPress={() => {
-                                const next = [...childAges];
-                                next[idx] = option;
-                                setChildAges(next);
-                                setActiveAgeDropdown(null);
-                              }}
-                              style={styles.ageOption}
-                            >
-                              {({ pressed }) => (
-                                <>
-                                  <Text
-                                    style={[
-                                      styles.ageOptionText,
-                                      { color: age === option ? colors.primary : colors.textTitle },
-                                    ]}
-                                  >
-                                    {option}
-                                  </Text>
-                                  {pressed && (
-                                    <View
-                                      style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay }]}
-                                    />
-                                  )}
-                                </>
-                              )}
-                            </Pressable>
-                          ))}
-                        </View>
-                      )}
-                    </View>
-                  ))}
-                </View>
-              )}
-
-              {/* ── Budget ── */}
-              <View
-                style={[
-                  styles.inputRow,
-                  { backgroundColor: colors.cardBg, borderColor: colors.divider },
-                  inputElevation,
-                ]}
-              >
-                <View style={styles.fieldContent}>
-                  <Text style={[styles.fieldLabel, { color: colors.textCaption }]}>예산</Text>
-                  <View style={styles.budgetRow}>
+              <View style={styles.budgetGroup}>
+                <Text style={[styles.fieldLabel, { color: colors.textSub }]}>예산</Text>
+                <View style={styles.budgetControl}>
+                  <View style={[styles.budgetInputBox, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}>
                     <TextInput
-                      style={[styles.budgetInput, { color: colors.textTitle }]}
+                      value={budget}
+                      onChangeText={value => setBudget(value.replace(/[^0-9]/g, ''))}
                       placeholder="0"
                       placeholderTextColor={colors.textDisabled}
-                      value={budget}
-                      onChangeText={v => setBudget(v.replace(/[^0-9]/g, ''))}
                       keyboardType="number-pad"
+                      style={[styles.budgetInput, { color: colors.textTitle }]}
                     />
-                    <Text style={[styles.budgetUnit, { color: colors.textCaption }]}>원</Text>
                   </View>
+                  <Text style={[styles.budgetUnit, { color: colors.textCaption }]}>만원</Text>
                 </View>
               </View>
             </ScrollView>
 
-            {/* ── Footer ── */}
-            <View
-              style={[
-                styles.footer,
-                { borderTopColor: colors.divider, paddingBottom: insets.bottom + 16 },
-              ]}
-            >
+            <View style={[styles.footer, { paddingBottom: footerBottom }]}>
               <Pressable
                 onPress={handleSubmit}
                 disabled={!isValid}
                 style={[
                   styles.primaryButton,
-                  { backgroundColor: isValid ? colors.primary : colors.secondarySurface },
-                  isValid && Elevation[scheme][2],
+                  {
+                    backgroundColor: isValid ? colors.primary : colors.secondarySurface,
+                    borderColor: isValid ? colors.primaryActive : colors.divider,
+                  },
                 ]}
               >
                 {({ pressed }) => (
                   <>
-                    <Text
-                      style={[
-                        styles.primaryButtonText,
-                        { color: isValid ? colors.pageBg : colors.textDisabled },
-                      ]}
-                    >
-                      {mode === 'create' ? '여행 시작하기' : '수정 완료'}
+                    <Text style={[styles.primaryButtonText, { color: isValid ? colors.pageBg : colors.textDisabled }]}>
+                      {buttonLabel}
                     </Text>
                     {pressed && isValid && (
-                      <View
-                        style={[
-                          StyleSheet.absoluteFill,
-                          { backgroundColor: colors.pressOverlay, borderRadius: BorderRadius.lg },
-                        ]}
-                      />
+                      <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay, borderRadius: BorderRadius.md }]} />
                     )}
                   </>
                 )}
@@ -643,66 +549,82 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
+    alignSelf: 'center',
     borderTopLeftRadius: BorderRadius.lgModal,
     borderTopRightRadius: BorderRadius.lgModal,
-    maxHeight: '90%',
+    maxHeight: '92%',
+    maxWidth: 393,
+    overflow: 'hidden',
+    width: '96%',
   },
-  sheetTitle: {
+  handle: {
+    alignSelf: 'center',
+    borderRadius: BorderRadius.full,
+    height: 8,
+    marginTop: 22,
+    width: 82,
+  },
+  title: {
     ...Typography['heading-xl'],
+    marginTop: 34,
+    paddingHorizontal: 25,
+  },
+  content: {
     paddingHorizontal: 24,
     paddingTop: 28,
-    paddingBottom: 20,
   },
-  scrollContent: {
-    paddingHorizontal: 24,
-    paddingBottom: 16,
-    gap: 12,
+  fieldGroup: {
+    gap: 10,
+    marginBottom: 27,
   },
-  // ── Input row ──
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    gap: 12,
-    overflow: 'hidden',
-  },
-  fieldContent: {
-    flex: 1,
-    gap: 4,
+  budgetGroup: {
+    gap: 10,
+    marginBottom: 28,
   },
   fieldLabel: {
     ...Typography['heading-sm'],
   },
-  fieldValue: {
-    ...Typography['heading-sm'],
+  inputBox: {
+    alignItems: 'center',
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    height: 55,
+    justifyContent: 'space-between',
+    overflow: 'hidden',
+    paddingHorizontal: 18,
   },
-  fieldInput: {
+  textInput: {
     ...Typography['heading-sm'],
+    flex: 1,
     lineHeight: undefined,
-    padding: 0,
     margin: 0,
+    padding: 0,
   },
-  // ── Calendar ──
-  calendar: {
-    gap: 2,
-    paddingVertical: 8,
+  inputValue: {
+    ...Typography['heading-sm'],
+    flex: 1,
+  },
+  calendarPanel: {
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    marginTop: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 14,
   },
   calendarHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
+    flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 8,
   },
-  calendarNavBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    justifyContent: 'center',
+  calendarNavButton: {
     alignItems: 'center',
-    overflow: 'hidden',
+    borderRadius: BorderRadius.full,
+    height: 36,
+    justifyContent: 'center',
+    width: 36,
   },
   chevronLeft: {
     transform: [{ rotate: '90deg' }],
@@ -710,131 +632,176 @@ const styles = StyleSheet.create({
   chevronRight: {
     transform: [{ rotate: '-90deg' }],
   },
-  calendarMonthLabel: {
+  chevronOpen: {
+    transform: [{ rotate: '180deg' }],
+  },
+  calendarMonth: {
     ...Typography['heading-sm'],
   },
   calendarRow: {
     flexDirection: 'row',
   },
   calendarDayHeader: {
-    flex: 1,
-    textAlign: 'center',
     ...Typography['caption'],
+    flex: 1,
     paddingVertical: 6,
+    textAlign: 'center',
   },
   calendarCell: {
-    flex: 1,
     alignItems: 'center',
+    flex: 1,
     paddingVertical: 2,
   },
-  calendarDayInner: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.full,
-    justifyContent: 'center',
+  calendarDay: {
     alignItems: 'center',
+    borderRadius: BorderRadius.full,
+    height: 34,
+    justifyContent: 'center',
     overflow: 'hidden',
+    width: 34,
   },
   calendarDayText: {
     ...Typography['body-md'],
   },
-  // ── Expanded panel ──
-  expandedPanel: {
+  peoplePanel: {
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    overflow: 'hidden',
+    marginTop: 10,
+    overflow: 'visible',
+    zIndex: 10,
   },
-  // ── Stepper ──
   stepperRow: {
-    flexDirection: 'row',
     alignItems: 'center',
+    flexDirection: 'row',
+    height: 62,
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 24,
   },
   stepperLabel: {
     ...Typography['heading-sm'],
   },
   stepperControls: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 20,
+    flexDirection: 'row',
+    gap: 30,
   },
-  stepperBtn: {
-    width: 32,
-    height: 32,
+  stepperButton: {
+    alignItems: 'center',
     borderRadius: BorderRadius.full,
     borderWidth: 1,
+    height: 36,
     justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
+    width: 36,
   },
-  stepperBtnText: {
-    ...Typography['heading-sm'],
+  stepperIcon: {
+    ...Typography['heading-md'],
+    lineHeight: 22,
   },
   stepperValue: {
     ...Typography['heading-sm'],
     minWidth: 24,
     textAlign: 'center',
   },
-  // ── Age ──
+  ageItem: {
+    height: 56,
+    position: 'relative',
+    zIndex: 1,
+  },
+  ageItemActive: {
+    zIndex: 20,
+  },
+  ageDivider: {
+    height: 1,
+    left: 24,
+    position: 'absolute',
+    right: 24,
+    top: 0,
+  },
   ageRow: {
-    flexDirection: 'row',
     alignItems: 'center',
+    flexDirection: 'row',
+    height: 56,
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderTopWidth: 1,
-    overflow: 'hidden',
+    paddingHorizontal: 24,
   },
   ageValueRow: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    borderWidth: 1,
+    borderRadius: BorderRadius.sm,
+    flexDirection: 'row',
+    height: 36,
+    justifyContent: 'flex-start',
+    paddingLeft: 8,
+    paddingRight: 24,
+    position: 'relative',
+    width: 92,
   },
   ageValue: {
-    ...Typography['body-md'],
+    ...Typography['heading-sm'],
+    flex: 1,
+    textAlign: 'center',
+  },
+  ageValueIcon: {
+    position: 'absolute',
+    right: 8,
   },
   ageDropdown: {
-    borderTopWidth: 1,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    bottom: 43,
     overflow: 'hidden',
+    position: 'absolute',
+    right: 24,
+    width: 92,
+    zIndex: 30,
   },
   ageOption: {
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    overflow: 'hidden',
+    alignItems: 'center',
+    borderBottomWidth: 0.5,
+    height: 23,
+    justifyContent: 'center',
   },
   ageOptionText: {
-    ...Typography['body-md'],
+    ...Typography['body-sm'],
+    lineHeight: 18,
   },
-  // ── Budget ──
-  budgetRow: {
-    flexDirection: 'row',
+  budgetControl: {
     alignItems: 'center',
-    gap: 4,
+    flexDirection: 'row',
+    gap: 12,
+  },
+  budgetInputBox: {
+    alignItems: 'center',
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    height: 46,
+    justifyContent: 'center',
+    minWidth: 56,
+    paddingHorizontal: 12,
   },
   budgetInput: {
     ...Typography['heading-sm'],
     lineHeight: undefined,
-    padding: 0,
     margin: 0,
-    minWidth: 40,
+    minWidth: 32,
+    padding: 0,
+    textAlign: 'center',
   },
   budgetUnit: {
     ...Typography['heading-sm'],
   },
-  // ── Footer ──
   footer: {
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    borderTopWidth: 1,
+    alignItems: 'center',
+    paddingTop: 0,
   },
   primaryButton: {
-    height: 52,
-    borderRadius: BorderRadius.lg,
-    justifyContent: 'center',
     alignItems: 'center',
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    height: 52,
+    justifyContent: 'center',
     overflow: 'hidden',
+    width: 320,
   },
   primaryButtonText: {
     ...Typography['heading-sm'],
