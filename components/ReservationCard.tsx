@@ -100,17 +100,22 @@ function CardBody({
     return (
       <>
         <View style={styles.flightRoute}>
-          <Text style={[styles.airportCode, { color: titleColor }]}>{props.departureCode}</Text>
-          <View style={styles.flightMiddle}>
-            <Text style={[styles.label, { color: captionColor }]}>
-              ─{props.flightNumber}─ ▶ ─{props.duration}─
-            </Text>
+          <View style={styles.flightEndpoint}>
+            <Text style={[styles.airportCode, { color: titleColor }]}>{props.departureCode}</Text>
+            <Text style={[styles.caption, { color: captionColor }]}>{props.departureTime}</Text>
           </View>
-          <Text style={[styles.airportCode, { color: titleColor }]}>{props.arrivalCode}</Text>
-        </View>
-        <View style={styles.flightTimes}>
-          <Text style={[styles.caption, { color: captionColor }]}>{props.departureTime}</Text>
-          <Text style={[styles.caption, { color: captionColor }]}>{props.arrivalTime}</Text>
+          <View style={styles.flightCenter}>
+            <Text style={[styles.label, { color: captionColor }]}>{props.flightNumber}</Text>
+            <View style={styles.flightArrowRow}>
+              <View style={[styles.flightLine, { backgroundColor: captionColor }]} />
+              <View style={[styles.flightArrowHead, { borderLeftColor: captionColor }]} />
+            </View>
+            <Text style={[styles.label, { color: captionColor }]}>{props.duration}</Text>
+          </View>
+          <View style={[styles.flightEndpoint, styles.flightEndpointRight]}>
+            <Text style={[styles.airportCode, { color: titleColor }]}>{props.arrivalCode}</Text>
+            <Text style={[styles.caption, { color: captionColor }]}>{props.arrivalTime}</Text>
+          </View>
         </View>
         <Text style={[styles.caption, { color: captionColor }]}>
           {props.date} · {props.airline}
@@ -238,18 +243,41 @@ const styles = StyleSheet.create({
   flightRoute: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 8,
+  },
+  flightEndpoint: {
+    alignItems: 'flex-start',
+    gap: 2,
+    minWidth: 64,
+  },
+  flightEndpointRight: {
+    alignItems: 'flex-end',
   },
   airportCode: {
     ...Typography['heading-xl'],
   },
-  flightMiddle: {
+  flightCenter: {
     flex: 1,
     alignItems: 'center',
+    gap: 0,
   },
-  flightTimes: {
+  flightArrowRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+  },
+  flightLine: {
+    flex: 1,
+    height: 1,
+  },
+  flightArrowHead: {
+    width: 0,
+    height: 0,
+    borderTopWidth: 5,
+    borderBottomWidth: 5,
+    borderLeftWidth: 7,
+    borderTopColor: 'transparent',
+    borderBottomColor: 'transparent',
   },
   divider: {
     height: 1,
