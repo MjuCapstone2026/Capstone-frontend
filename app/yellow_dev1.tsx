@@ -81,8 +81,9 @@ export default function YellowDev1Screen() {
         />
       </Section>
 
-      <Section title="ReservationCard — 예약">
+      <Section title="ReservationCard — 렌트카 (확정)">
         <ReservationCard
+          type="car"
           vendor="롯데렌터카"
           carModel="쏘나타 (준중형)"
           pickupDateTime="2025.06.10 (화) 10:00"
@@ -93,12 +94,13 @@ export default function YellowDev1Screen() {
           bookedBy="ai"
           reservationNumber="RC-20250610-001"
           reservationDate="2025.05.20"
-          status="active"
+          status="confirmed"
         />
       </Section>
 
-      <Section title="ReservationCard — 취소">
+      <Section title="ReservationCard — 렌트카 (취소)">
         <ReservationCard
+          type="car"
           vendor="제주렌트카"
           carModel="아반떼 (소형)"
           pickupDateTime="2025.04.20 (일) 09:00"
@@ -110,6 +112,41 @@ export default function YellowDev1Screen() {
           reservationNumber="RC-20250420-002"
           reservationDate="2025.03.15"
           status="cancelled"
+        />
+      </Section>
+
+      <Section title="ReservationCard — 항공편 (확정)">
+        <ReservationCard
+          type="flight"
+          departureCode="ICN"
+          arrivalCode="NRT"
+          flightNumber="KE721"
+          duration="2시간 30분"
+          departureTime="09:00"
+          arrivalTime="11:30"
+          date="2026년 5월 1일"
+          airline="Korean Air"
+          price="₩ 320,000"
+          bookedBy="user"
+          reservationNumber="KE12345678"
+          reservationDate="2026.04.03"
+          status="confirmed"
+        />
+      </Section>
+
+      <Section title="ReservationCard — 숙소 (변경)">
+        <ReservationCard
+          type="lodging"
+          hotelName="신주쿠 그랜드호텔"
+          checkInDate="2026.05.01"
+          checkOutDate="2026.05.03"
+          roomType="디럭스 더블"
+          guests={2}
+          price="₩ 240,000"
+          bookedBy="ai"
+          reservationNumber="HT98765432"
+          reservationDate="2026.04.03"
+          status="changed"
         />
       </Section>
 
