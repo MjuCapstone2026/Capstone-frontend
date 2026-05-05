@@ -338,13 +338,13 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, onSubmit, on
 
           <View style={[styles.sheet, { backgroundColor: colors.pageBg }]}>
             <View style={[styles.handle, { backgroundColor: colors.textCaption }]} />
-            <Text style={[styles.title, { color: colors.textTitle }]}>여행 정보를 입력해주세요</Text>
 
             <ScrollView
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={[styles.content, { paddingBottom: 24 }]}
             >
+              <Text style={[styles.title, { color: colors.textTitle }]}>여행 정보를 입력해주세요</Text>
               <View style={styles.fieldGroup}>
                 <Text style={[styles.fieldLabel, { color: colors.textSub }]}>여행지</Text>
                 <View style={[styles.inputBox, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}>
@@ -444,7 +444,7 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, onSubmit, on
                           onPress={() => setActiveAgeDropdown(activeAgeDropdown === index ? null : index)}
                           style={styles.ageRow}
                         >
-                          <Text style={[styles.stepperLabel, { color: colors.textTitle }]}>아동 {index + 1}</Text>
+                          <Text style={[styles.ageLabel, { color: colors.textCaption }]}>아동 {index + 1}</Text>
                           <View style={[styles.ageValueRow, { borderColor: colors.divider }]}>
                             <Text style={[styles.ageValue, { color: age ? colors.textTitle : colors.textDisabled }]}>
                               {age || '나이 선택'}
@@ -566,12 +566,12 @@ const styles = StyleSheet.create({
   },
   title: {
     ...Typography['heading-xl'],
-    marginTop: 34,
-    paddingHorizontal: 25,
+    marginBottom: 28,
+    paddingHorizontal: 1,
   },
   content: {
     paddingHorizontal: 24,
-    paddingTop: 28,
+    paddingTop: 34,
   },
   fieldGroup: {
     gap: 10,
@@ -703,7 +703,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   ageItem: {
-    height: 56,
+    height: 62,
     position: 'relative',
     zIndex: 1,
   },
@@ -714,15 +714,19 @@ const styles = StyleSheet.create({
     height: 1,
     left: 24,
     position: 'absolute',
-    right: 24,
+    right: 32,
     top: 0,
   },
   ageRow: {
     alignItems: 'center',
     flexDirection: 'row',
-    height: 56,
+    height: 62,
     justifyContent: 'space-between',
     paddingHorizontal: 24,
+  },
+  ageLabel: {
+    ...Typography['heading-sm'],
+    marginLeft: 8,
   },
   ageValueRow: {
     alignItems: 'center',
@@ -734,6 +738,7 @@ const styles = StyleSheet.create({
     paddingLeft: 8,
     paddingRight: 24,
     position: 'relative',
+    marginRight: 8,
     width: 92,
   },
   ageValue: {
@@ -748,10 +753,10 @@ const styles = StyleSheet.create({
   ageDropdown: {
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    bottom: 43,
+    bottom: 53,
     overflow: 'hidden',
     position: 'absolute',
-    right: 24,
+    right: 32,
     width: 92,
     zIndex: 30,
   },
