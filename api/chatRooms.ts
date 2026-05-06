@@ -21,6 +21,17 @@ type ChatRoomsResponse = {
   rooms: ChatRoom[];
 };
 
+type ChatRoomDetail = {
+  roomId: string;
+  name: string;
+  clerkId: string;
+  aiSummary: string | null;
+  preferences: ChatRoomPreferences | null;
+  itineraryId: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 type CreateChatRoomRequest = {
   destination: string;
   startDate: string;
@@ -42,6 +53,11 @@ type CreatedChatRoom = {
 
 export const getChatRooms = (token: string) =>
   apiClient.get<ChatRoomsResponse>(BASE, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+export const getChatRoom = (token: string, roomId: string) =>
+  apiClient.get<ChatRoomDetail>(`${BASE}/${roomId}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
 
