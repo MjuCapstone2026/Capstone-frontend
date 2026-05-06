@@ -25,6 +25,10 @@ type SendChatMessageRequest = {
   content: string;
 };
 
+export type SendChatMessageChunk = {
+  content: string;
+};
+
 type ItineraryPlan = {
   plan_name: string;
   time: string;
@@ -79,14 +83,74 @@ export type SendChatMessageDone = {
   cancel?: DoneCancel;
 };
 
+export type ChatMessageStreamHandlers = {
+  onChunk?: (chunk: SendChatMessageChunk) => void;
+  onDone?: (done: SendChatMessageDone) => void;
+};
+
+export class ChatMessageStreamError extends Error {
+  status: number;
+  body: string;
+
+  constructor(status: number, body: string) {
+    super(`Chat message stream request failed with status ${status}`);
+    this.name = 'ChatMessageStreamError';
+    this.status = status;
+    this.body = body;
+  }
+}
+
 export const getChatMessages = (token: string, roomId: string, params?: GetChatMessagesParams) =>
   apiClient.get<ChatMessagesResponse>(`${BASE}/${roomId}`, {
     headers: { Authorization: `Bearer ${token}` },
     params,
   });
 
-export const sendChatMessage = (token: string, roomId: string, body: SendChatMessageRequest): Promise<Response> =>
-  fetch(`${getApiBaseUrl()}${BASE}/${roomId}`, {
+const parseSseMessage = (message: string) => {
+  const lines = message.split(/\r?\n/);
+  let event = 'message';
+  const dataLines: string[] = [];
+
+  for (const line of lines) {
+    if (line.startsWith('event:')) {
+      event = line.slice('event:'.length).trim();
+      continue;
+    }
+
+    if (line.startsWith('data:')) {
+      dataLines.push(line.slice('data:'.length).trimStart());
+    }
+  }
+
+  return {
+    event,
+    data: dataLines.join('\n'),
+  };
+};
+
+const handleSseMessage = (message: string, handlers: ChatMessageStreamHandlers) => {
+  const { event, data } = parseSseMessage(message);
+
+  if (!data) {
+    return;
+  }
+
+  if (event === 'chunk') {
+    handlers.onChunk?.(JSON.parse(data) as SendChatMessageChunk);
+    return;
+  }
+
+  if (event === 'done') {
+    handlers.onDone?.(JSON.parse(data) as SendChatMessageDone);
+  }
+};
+
+const sendChatMessage = async (
+  token: string,
+  roomId: string,
+  body: SendChatMessageRequest,
+): Promise<Response> => {
+  const response = await fetch(`${getApiBaseUrl()}${BASE}/${roomId}`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -95,3 +159,52 @@ export const sendChatMessage = (token: string, roomId: string, body: SendChatMes
     },
     body: JSON.stringify(body),
   });
+
+  if (!response.ok) {
+    throw new ChatMessageStreamError(response.status, await response.text());
+  }
+
+  return response;
+};
+
+export const readChatMessageStream = async (response: Response, handlers: ChatMessageStreamHandlers) => {
+  if (!response.body) {
+    throw new Error('Chat message stream response body is empty');
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+
+    if (done) {
+      break;
+    }
+
+    buffer += decoder.decode(value, { stream: true });
+    const messages = buffer.split(/\r?\n\r?\n/);
+    buffer = messages.pop() ?? '';
+
+    for (const message of messages) {
+      handleSseMessage(message, handlers);
+    }
+  }
+
+  buffer += decoder.decode();
+
+  if (buffer.trim()) {
+    handleSseMessage(buffer, handlers);
+  }
+};
+
+export const sendChatMessageStream = async (
+  token: string,
+  roomId: string,
+  body: SendChatMessageRequest,
+  handlers: ChatMessageStreamHandlers,
+) => {
+  const response = await sendChatMessage(token, roomId, body);
+  await readChatMessageStream(response, handlers);
+};
