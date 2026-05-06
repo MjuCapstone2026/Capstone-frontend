@@ -4,6 +4,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { Typography, BorderRadius, Elevation } from '@/constants/theme';
 import IcPin from '@/assets/icons/ic_pin.svg';
 import { CheckButton } from '@/components/ui/CheckButton';
+import { ScheduleStatusBadge } from '@/components/ui/ScheduleStatusBadge';
 
 type Status = 'upcoming' | 'completed';
 
@@ -21,10 +22,7 @@ export function DayScheduleItem({ title, startTime, endTime, location, memo, sta
   const { colors, scheme } = useTheme();
 
   const isCompleted = status === 'completed';
-
-  const badgeBg = isCompleted ? colors.successBg : colors.warningBg;
-  const badgeText = isCompleted ? colors.success : colors.warning;
-  const badgeLabel = isCompleted ? '완료' : '예정';
+  const badgeStatus = isCompleted ? 'completed' : 'draft';
 
   return (
     <View
@@ -39,9 +37,8 @@ export function DayScheduleItem({ title, startTime, endTime, location, memo, sta
         <Text style={[styles.time, { color: colors.textCaption }]}>
           {startTime} ~ {endTime}
         </Text>
-        {/* TODO: StatusBadge 컴포넌트 완성 후 아래 인라인 뱃지를 교체 */}
-        <View style={[styles.badge, { backgroundColor: badgeBg }]}>
-          <Text style={[styles.badgeText, { color: badgeText }]}>{badgeLabel}</Text>
+        <View style={styles.statusBadgeWrapper}>
+          <ScheduleStatusBadge status={badgeStatus} />
         </View>
         <View style={styles.spacer} />
         <CheckButton checked={isCompleted} onToggle={onToggle} />
@@ -87,15 +84,9 @@ const styles = StyleSheet.create({
   spacer: {
     flex: 1,
   },
-  badge: {
-    paddingVertical: 2,
-    paddingHorizontal: 8,
-    borderRadius: BorderRadius.full,
+  statusBadgeWrapper: {
+    alignSelf: 'center',
   },
-  badgeText: {
-    ...Typography['label'],
-  },
-
   title: {
     ...Typography['heading-md'],
   },
@@ -109,6 +100,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   memo: {
-    ...Typography['heading-md'],
+    ...Typography['body-md'],
   },
 });
