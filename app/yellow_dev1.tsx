@@ -1,7 +1,17 @@
-import { ScrollView, StyleSheet, View, Text, Pressable } from 'react-native';
+import { ScrollView, StyleSheet, View, Text, Pressable, TextInput } from 'react-native';
 import { useState } from 'react';
 import { useTheme } from '@/hooks/useTheme';
 import { Typography } from '@/constants/theme';
+import { useApi } from '@/hooks/useApi';
+import {
+  getItineraries,
+  getItinerary,
+  updateItinerary,
+  updateDayPlans,
+  updateItemStatus,
+  getItineraryLogs,
+  updateItineraryStatus,
+} from '@/api/itineraries';
 import { QuickMenu } from '@/components/QuickMenu';
 import { RecentChatSection } from '@/components/RecentChatSection';
 import { RecentTravelSection } from '@/components/RecentTravelSection';
@@ -23,6 +33,41 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+function LogBox({ log }: { log: string }) {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.logBox, { backgroundColor: colors.cardBg, borderColor: colors.divider }]}>
+      <Text style={[styles.logText, { color: colors.textBody }]} selectable>
+        {log || '—'}
+      </Text>
+    </View>
+  );
+}
+
+function TogglePair<T extends string>({ options, value, onChange }: {
+  options: readonly T[];
+  value: T;
+  onChange: (v: T) => void;
+}) {
+  const { colors } = useTheme();
+  return (
+    <View style={styles.toggleRow}>
+      {options.map((opt) => (
+        <Pressable
+          key={opt}
+          style={[
+            styles.toggleButton,
+            { backgroundColor: value === opt ? colors.primary : colors.cardBg, borderColor: colors.primary },
+          ]}
+          onPress={() => onChange(opt)}
+        >
+          <Text style={[styles.toggleText, { color: value === opt ? colors.cardBg : colors.primary }]}>{opt}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
 const SAMPLE_CHATS = [
   { id: 1, title: '제주도 3박 4일 여행 계획', aiSummary: '렌트카 포함 일정 생성 완료', updatedAt: '방금 전' },
   { id: 2, title: '부산 당일치기', aiSummary: '해운대 → 광안리 → 국제시장 코스 추천', updatedAt: '어제' },
@@ -35,10 +80,34 @@ const SAMPLE_TRAVELS = [
 
 export default function YellowDev1Screen() {
   const { colors } = useTheme();
+  const { authRequest } = useApi();
 
   const [renameModalVisible, setRenameModalVisible] = useState(false);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [overflowMenuVisible, setOverflowMenuVisible] = useState(false);
+
+  const [itineraryId, setItineraryId] = useState('');
+  const [itemDate, setItemDate] = useState('2026-05-01');
+  const [itemIndex, setItemIndex] = useState('0');
+  const [itemStatus, setItemStatus] = useState<'todo' | 'done'>('done');
+  const [itineraryStatus, setItineraryStatus] = useState<'draft' | 'completed'>('completed');
+  const [log1, setLog1] = useState('');
+  const [log2, setLog2] = useState('');
+  const [log3, setLog3] = useState('');
+  const [log4, setLog4] = useState('');
+  const [log5, setLog5] = useState('');
+  const [log6, setLog6] = useState('');
+  const [log7, setLog7] = useState('');
+
+  const call = async (fn: () => Promise<unknown>, setLog: (s: string) => void) => {
+    setLog('로딩 중...');
+    try {
+      const data = await fn();
+      setLog(JSON.stringify(data, null, 2));
+    } catch (e) {
+      setLog(`❌ ${String(e)}`);
+    }
+  };
 
   return (
     <ScrollView contentContainerStyle={[styles.container, { backgroundColor: colors.pageBg }]}>
@@ -196,6 +265,114 @@ export default function YellowDev1Screen() {
         <PrimaryButton label="수정하기 (비활성)" onPress={() => {}} disabled />
       </Section>
 
+      {/* ── Itineraries API 테스트 ── */}
+
+      <Section title="[API] 공통 입력">
+        <Text style={[styles.label, { color: colors.textBody }]}>itineraryId (UUID)</Text>
+        <TextInput
+          style={[styles.apiInput, { borderColor: colors.divider, color: colors.textBody, backgroundColor: colors.cardBg }]}
+          value={itineraryId}
+          onChangeText={setItineraryId}
+          placeholder="예: aaa-111"
+          placeholderTextColor={colors.textDisabled}
+          autoCapitalize="none"
+        />
+      </Section>
+
+      <Section title="[API 1] GET /itineraries">
+        <Pressable style={[styles.openButton, { backgroundColor: colors.primary }]}
+          onPress={() => call(() => authRequest(getItineraries), setLog1)}>
+          <Text style={[styles.openButtonText, { color: colors.cardBg }]}>getItineraries 호출</Text>
+        </Pressable>
+        <LogBox log={log1} />
+      </Section>
+
+      <Section title="[API 2] GET /itineraries/{itineraryId}">
+        <Pressable style={[styles.openButton, { backgroundColor: colors.primary }]}
+          onPress={() => call(() => authRequest((token) => getItinerary(token, itineraryId)), setLog2)}>
+          <Text style={[styles.openButtonText, { color: colors.cardBg }]}>getItinerary 호출</Text>
+        </Pressable>
+        <LogBox log={log2} />
+      </Section>
+
+      <Section title="[API 3] PATCH /itineraries/{itineraryId}">
+        <Text style={[styles.hint, { color: colors.textDisabled }]}>테스트값: adultCount=2, childCount=0, childAges=[]</Text>
+        <Pressable style={[styles.openButton, { backgroundColor: colors.primary }]}
+          onPress={() => call(() => authRequest((token) =>
+            updateItinerary(token, itineraryId, { adultCount: 2, childCount: 0, childAges: [] })), setLog3)}>
+          <Text style={[styles.openButtonText, { color: colors.cardBg }]}>updateItinerary 호출</Text>
+        </Pressable>
+        <LogBox log={log3} />
+      </Section>
+
+      <Section title="[API 4] PATCH /itineraries/{itineraryId}/day-plans">
+        <Text style={[styles.hint, { color: colors.textDisabled }]}>테스트값: 2026-05-01 / 테스트 일정 09:00~11:00</Text>
+        <Pressable style={[styles.openButton, { backgroundColor: colors.primary }]}
+          onPress={() => call(() => authRequest((token) =>
+            updateDayPlans(token, itineraryId, {
+              dayPlans: {
+                '2026-05-01': [
+                  { plan_name: '테스트 일정', time: '09:00 ~ 11:00', place: '테스트 장소', note: '테스트 메모' },
+                ],
+              },
+            })), setLog4)}>
+          <Text style={[styles.openButtonText, { color: colors.cardBg }]}>updateDayPlans 호출</Text>
+        </Pressable>
+        <LogBox log={log4} />
+      </Section>
+
+      <Section title="[API 5] PATCH /itineraries/{itineraryId}/items/status">
+        <View style={styles.twoCol}>
+          <View style={styles.flex1}>
+            <Text style={[styles.label, { color: colors.textBody }]}>date</Text>
+            <TextInput
+              style={[styles.apiInput, { borderColor: colors.divider, color: colors.textBody, backgroundColor: colors.cardBg }]}
+              value={itemDate}
+              onChangeText={setItemDate}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor={colors.textDisabled}
+            />
+          </View>
+          <View style={styles.flex1}>
+            <Text style={[styles.label, { color: colors.textBody }]}>index</Text>
+            <TextInput
+              style={[styles.apiInput, { borderColor: colors.divider, color: colors.textBody, backgroundColor: colors.cardBg }]}
+              value={itemIndex}
+              onChangeText={setItemIndex}
+              keyboardType="numeric"
+              placeholderTextColor={colors.textDisabled}
+            />
+          </View>
+        </View>
+        <Text style={[styles.label, { color: colors.textBody }]}>status</Text>
+        <TogglePair options={['todo', 'done'] as const} value={itemStatus} onChange={setItemStatus} />
+        <Pressable style={[styles.openButton, { backgroundColor: colors.primary }]}
+          onPress={() => call(() => authRequest((token) =>
+            updateItemStatus(token, itineraryId, { date: itemDate, index: Number(itemIndex), status: itemStatus })), setLog5)}>
+          <Text style={[styles.openButtonText, { color: colors.cardBg }]}>updateItemStatus 호출</Text>
+        </Pressable>
+        <LogBox log={log5} />
+      </Section>
+
+      <Section title="[API 6] GET /itineraries/{itineraryId}/logs">
+        <Pressable style={[styles.openButton, { backgroundColor: colors.primary }]}
+          onPress={() => call(() => authRequest((token) => getItineraryLogs(token, itineraryId)), setLog6)}>
+          <Text style={[styles.openButtonText, { color: colors.cardBg }]}>getItineraryLogs 호출</Text>
+        </Pressable>
+        <LogBox log={log6} />
+      </Section>
+
+      <Section title="[API 7] PATCH /itineraries/{itineraryId}/status">
+        <Text style={[styles.label, { color: colors.textBody }]}>status</Text>
+        <TogglePair options={['draft', 'completed'] as const} value={itineraryStatus} onChange={setItineraryStatus} />
+        <Pressable style={[styles.openButton, { backgroundColor: colors.primary }]}
+          onPress={() => call(() => authRequest((token) =>
+            updateItineraryStatus(token, itineraryId, { status: itineraryStatus })), setLog7)}>
+          <Text style={[styles.openButtonText, { color: colors.cardBg }]}>updateItineraryStatus 호출</Text>
+        </Pressable>
+        <LogBox log={log7} />
+      </Section>
+
     </ScrollView>
   );
 }
@@ -226,5 +403,50 @@ const styles = StyleSheet.create({
   openButtonText: {
     ...Typography['body-md'],
     fontWeight: '600',
+  },
+  logBox: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    minHeight: 48,
+  },
+  logText: {
+    ...Typography['body-sm'],
+    fontFamily: 'monospace',
+  },
+  apiInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    ...Typography['body-md'],
+  },
+  label: {
+    ...Typography['body-sm'],
+  },
+  hint: {
+    ...Typography['body-sm'],
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  toggleButton: {
+    flex: 1,
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  toggleText: {
+    ...Typography['body-sm'],
+    fontWeight: '600',
+  },
+  twoCol: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  flex1: {
+    flex: 1,
   },
 });
