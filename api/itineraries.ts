@@ -22,6 +22,7 @@ type DayPlanItem = {
   place: string;
   note: string;
   status: string;
+  price?: number | null;
 };
 
 type ItineraryDetail = {
@@ -78,6 +79,7 @@ type DayPlanItemInput = {
   time: string;
   place: string;
   note?: string;
+  price?: number | null;
 };
 
 type UpdateDayPlansRequest = {
@@ -120,6 +122,7 @@ type LogDayPlanItem = {
   place: string;
   note: string;
   status: string;
+  price?: number | null;
 };
 
 type ItineraryLog = {
