@@ -108,7 +108,7 @@
             "endDate": "2026-05-04",
             "dayPlans": {
               "2026-05-01": [
-                {"plan_name": 0, "time": "09:00 ~ 10:00", "place": "창덕궁", "note": "후원 투어 예약 필요", "status": "todo"}
+                {"plan_name": "창덕궁 방문", "time": "09:00 ~ 10:00", "place": "창덕궁", "note": "후원 투어 예약 필요", "status": "todo"}
               ]
             },
             "updatedAt": "2026-04-03T22:00:05"
