@@ -51,6 +51,16 @@ type CreatedChatRoom = {
   updatedAt: string;
 };
 
+type UpdateChatRoomNameRequest = {
+  name: string;
+};
+
+type UpdatedChatRoomName = {
+  roomId: string;
+  name: string;
+  updatedAt: string;
+};
+
 export const getChatRooms = (token: string) =>
   apiClient.get<ChatRoomsResponse>(BASE, {
     headers: { Authorization: `Bearer ${token}` },
@@ -63,5 +73,10 @@ export const getChatRoom = (token: string, roomId: string) =>
 
 export const createChatRoom = (token: string, body: CreateChatRoomRequest) =>
   apiClient.post<CreatedChatRoom>(BASE, body, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+export const updateChatRoomName = (token: string, roomId: string, body: UpdateChatRoomNameRequest) =>
+  apiClient.patch<UpdatedChatRoomName>(`${BASE}/${roomId}/name`, body, {
     headers: { Authorization: `Bearer ${token}` },
   });
