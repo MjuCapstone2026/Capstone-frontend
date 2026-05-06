@@ -68,6 +68,7 @@ type {Name} = {
 - 응답 타입은 `api/{domain}.ts` 파일에 함께 정의한다.
 - Request body가 있으면 `{Name}Request` 또는 기존 도메인 네이밍에 맞는 타입을 만든다.
 - Path Parameter와 Query Parameter는 함수 인자로 받는다.
+- Path Parameter는 API 문서의 이름을 그대로 함수 인자로 받고, UUID는 `string`으로 타입 지정한다.
 - `any`를 사용하지 않는다.
 
 ### 5. API 함수 작성
@@ -79,7 +80,7 @@ const BASE = '/api/v1/{domain}';
 
 인증 필요 GET:
 ```typescript
-export const {methodName} = (token: string, id: number) =>
+export const {methodName} = (token: string, id: string) =>
   apiClient.get<{ResponseType}>(`${BASE}/${id}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
