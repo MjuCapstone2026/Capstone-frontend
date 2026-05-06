@@ -1,13 +1,13 @@
 <svg width="185" height="44" viewBox="0 0 185 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-<g id="Dark">
+<g id="Frame 163">
 <path id="Vector" d="M22 0.5H163C174.874 0.5 184.5 10.1259 184.5 22C184.5 33.8741 174.874 43.5 163 43.5H22C10.1259 43.5 0.5 33.8741 0.5 22C0.5 10.1259 10.1259 0.5 22 0.5Z" fill="#262B28" stroke="#373F3B"/>
 <g id="Clip path group">
-<mask id="mask0_363_6765" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="16" y="12" width="20" height="20">
+<mask id="mask0_466_6811" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="16" y="12" width="20" height="20">
 <g id="clip0_710_6234">
 <path id="Vector_2" d="M36 12H16V32H36V12Z" fill="white"/>
 </g>
 </mask>
-<g mask="url(#mask0_363_6765)">
+<g mask="url(#mask0_466_6811)">
 <g id="Group">
 <path id="Vector_3" d="M35.6 22.2273C35.6 21.5182 35.5364 20.8364 35.4182 20.1818H26V24.05H31.3818C31.15 25.3 30.4455 26.3591 29.3864 27.0682V29.5773H32.6182C34.5091 27.8364 35.6 25.2727 35.6 22.2273Z" fill="#4285F4"/>
 <path id="Vector_4" d="M25.9999 32C28.6999 32 30.9635 31.1045 32.6181 29.5773L29.3862 27.0682C28.4908 27.6682 27.3453 28.0227 25.9999 28.0227C23.3953 28.0227 21.1908 26.2636 20.4044 23.9H17.0635V26.4909C18.709 29.7591 22.0908 32 25.9999 32Z" fill="#34A853"/>

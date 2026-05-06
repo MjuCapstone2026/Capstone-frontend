@@ -5,21 +5,21 @@
 ### 디렉토리 구조
 ```
 app/                         ← 라우팅만 담당 (UI 없음)
+├── oauth-native-callback.tsx ← Android OAuth callback 수신 라우트
 ├── (auth)/
-│   └── sign-in.tsx          ← LoginScreen 진입점
+│   └── sign-in.tsx          ← LoginScreen 렌더링, 로그인 상태면 /home 이동
 ├── (main)/                  ← Stack + 커스텀 BottomNavigation 레이아웃
 │   ├── _layout.tsx          ← Stack navigator + BottomNavigation 컴포넌트
 │   ├── home.tsx             ← HomeScreen 진입점
 │   ├── chat.tsx             ← ChatScreen 진입점 (params로 분기)
 │   ├── plan.tsx             ← PlanScreen 진입점
 │   ├── plan-list.tsx        ← PlanListScreen 진입점
-│   └── setting.tsx          ← SettingScreen 진입점
-├── plan-list/
-│   └── [id]/
-│       ├── index.tsx        ← PlanListDetailScreen 진입점
-│       └── edit.tsx         ← PlanListDetailEditScreen 진입점
-├── _layout.tsx              ← 루트 레이아웃 (Toast, ClerkProvider 등)
-└── modal.tsx
+│   ├── setting.tsx          ← SettingScreen 진입점
+│   └── plan-list/
+│       └── [id]/
+│           ├── index.tsx    ← PlanListDetailScreen 진입점
+│           └── edit.tsx     ← PlanListDetailEditScreen 진입점
+└── _layout.tsx              ← 루트 레이아웃 (Toast, ClerkProvider 등)
 screens/                     ← 실제 화면 UI 담당
 ├── HomeScreen.tsx
 ├── NewChatScreen.tsx
@@ -45,12 +45,23 @@ constants/          색상, 폰트 등 상수
 
 탭 전환은 `router.navigate()`, 스택 푸시는 `router.push()` 사용.
 
+라우트 그룹 `(main)`, `(auth)`는 파일 구조 조직과 레이아웃 적용 목적이며 실제 URL 경로에 포함되지 않는다.
+이동할 때는 그룹명을 제외한 짧은 경로를 사용한다.
+인증, 로그인/로그아웃, Android OAuth callback 흐름은 `docs/auth-routing.md`를 참고한다.
+
+```
+파일 위치                    실제 경로
+app/(main)/home.tsx    →    /home
+app/(main)/chat.tsx    →    /chat
+app/(auth)/sign-in.tsx →    /sign-in
+```
+
 ```tsx
 // BottomNavigation 탭 전환 — 스택 유지하면서 화면 전환 (뒤로가기 시 앱 종료 방지)
-router.navigate('/(main)/plan-list');
+router.navigate('/plan-list');
 
 // 디테일 화면 진입 — 스택 쌓음 (뒤로가기 가능)
-router.push(`/plan-list/${id}`);
+router.push({ pathname: '/plan-list/[id]', params: { id } });
 
 // 뒤로가기
 router.back();
@@ -77,40 +88,51 @@ export default function MainLayout() {
 **HomeScreen**
 | 액션 | 목적지 | 방식 |
 |---|---|---|
-| QuickMenu "AI와 채팅" | `/(main)/chat` | navigate |
-| QuickMenu "일정 보기" | `/(main)/plan` | navigate |
+| QuickMenu "AI와 채팅" | `/chat` | navigate |
+| QuickMenu "일정 보기" | `/plan` | navigate |
 | RecentTravelSection 카드 탭 | `/plan-list/:id` | push |
-| RecentTravelSection "전체보기" | `/(main)/plan-list` | navigate |
-| RecentChatSection 카드 탭 | `/(main)/chat?chatId=:id` | navigate |
+| RecentTravelSection "전체보기" | `/plan-list` | navigate |
+| RecentChatSection 카드 탭 | `/chat?chatId=:id` | navigate |
 | RecentChatSection "전체보기" | NavigationDrawer 오픈 | 컴포넌트 상태 |
 
 **ChatScreen 진입 분기**
 
-`/(main)/chat`는 진입 방식에 따라 query param으로 분기한다.
+`/chat`는 진입 방식에 따라 query param으로 분기한다.
 
 ```tsx
 // BottomNavigation 탭 — 최근 채팅 표시, 없으면 새 채팅 생성 화면
-router.navigate('/(main)/chat');
+router.navigate('/chat');
 
 // RecentChatSection 카드 탭 — 특정 채팅 진입
-router.navigate('/(main)/chat?chatId=123');
+router.navigate({
+  pathname: '/chat',
+  params: { chatId: chat.id }, // UUID string
+});
 
 // NewTravelGenerateButton — 무조건 새 채팅 생성 화면
-router.navigate('/(main)/chat?new=true');
+router.navigate({
+  pathname: '/chat',
+  params: { mode: 'new' },
+});
 ```
 
 `chat.tsx` 내부에서 params로 분기:
 ```tsx
-const { chatId, new: isNew } = useLocalSearchParams();
+const { chatId, mode } = useLocalSearchParams<{
+  chatId?: string;
+  mode?: 'new';
+}>();
+
+const isNew = mode === 'new';
 // chatId 있으면 → 해당 채팅
-// isNew=true면 → 새 채팅 생성 화면
+// isNew면 → 새 채팅 생성 화면
 // 둘 다 없으면 → 최근 채팅 or 새 채팅 생성 화면
 ```
 
 **PlanScreen**
 | 액션 | 목적지 | 방식 |
 |---|---|---|
-| NewTravelGenerateButton (Empty 상태) | `/(main)/chat?new=true` | navigate |
+| NewTravelGenerateButton (Empty 상태) | `/chat?mode=new` | navigate |
 
 **PlanListScreen**
 | 액션 | 목적지 | 방식 |
@@ -135,16 +157,16 @@ const { chatId, new: isNew } = useLocalSearchParams();
 ### API 함수 패턴
 모든 API 함수는 `api/{domain}.ts`에 작성한다.
 
-```typescript
-// 인증 필요 API — token을 첫 번째 파라미터로 받음
-export const getSomething = (token: string, id: number) =>
-  apiClient.get(`/api/something/${id}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+파일 상단에 도메인 BASE 경로를 상수로 선언한다. API 버전이 바뀌면 이 한 줄만 수정하면 된다.
 
-// 공개 API — token 없이 호출
-export const getPublicData = () =>
-  apiClient.get('/api/public');
+```typescript
+const BASE = '/api/v1/chat-rooms';
+
+export const getChatRooms = (token: string) =>
+  apiClient.get(BASE, { ... });
+
+export const createChatRoom = (token: string) =>
+  apiClient.post(BASE, { ... });
 ```
 
 ### 인증 API 호출 — useApi 훅 사용
@@ -172,7 +194,11 @@ import { ChatRoomScreen } from '@/screens/ChatRoomScreen';
 import { PlanListScreen } from '@/screens/PlanListScreen';
 
 export default function ChatRoute() {
-  const { chatId, new: isNew } = useLocalSearchParams();
+  const { chatId, mode } = useLocalSearchParams<{
+    chatId?: string;
+    mode?: 'new';
+  }>();
+  const isNew = mode === 'new';
 
   if (isNew) return <NewChatScreen />;
   if (chatId) return <ChatRoomScreen chatId={String(chatId)} />;
@@ -477,7 +503,7 @@ Elevation[scheme][2]
 
 **BottomNavigation 컴포넌트** — 자기 자신의 높이와 안전영역 처리
 ```tsx
-// components/BottomNavigation.tsx
+// components/ui/BottomNavigation.tsx
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BOTTOM_NAVIGATION } from '@/constants/layout';
 
@@ -498,7 +524,7 @@ const styles = StyleSheet.create({
 
 **Screen** — 콘텐츠가 바텀바에 가려지지 않도록 하단 여백 확보
 ```tsx
-// app/(tabs)/some-screen.tsx
+// app/(main)/some-screen.tsx
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BOTTOM_NAVIGATION } from '@/constants/layout';
 
@@ -527,12 +553,12 @@ const styles = StyleSheet.create({
 const router = useRouter();
 
 // push — 스택에 쌓음. back() 하면 이전 화면으로 돌아올 수 있음
-router.push('/(tabs)/explore');
+router.push({ pathname: '/plan-list/[id]', params: { id } });
 
 // replace — 현재 화면을 대체. back() 해도 이 화면으로 돌아올 수 없음
 // 로그인 완료 후 메인으로, 로그아웃/회원탈퇴 후 로그인으로 이동할 때 사용
-router.replace('/(tabs)');
-router.replace('/(auth)/sign-in');
+router.replace('/home');
+router.replace('/sign-in');
 
 // back — 이전 화면으로 이동
 router.back();
@@ -563,6 +589,23 @@ export const getSchedule = (token: string, id: number) =>
 
 - API 호출은 항상 `try/catch` 로 감싸기
 - `console.error()`는 개발 디버깅용으로만 — 프로덕션 에러는 UI로 안내
+- HTTP status 분기는 `utils/getErrorMessage.ts` 공통 유틸에서 처리하고, `status == null`이면 네트워크 오류로 본다.
+- `400/401/403/404`와 `5xx`는 상태코드별 메시지로 분기하고, 나머지는 `UNKNOWN` 또는 공통 오류 메시지로 처리한다.
+- 사용자에게 보여줄 에러는 `getErrorMessage(error)`로 메시지를 만든 뒤 Toast로 안내한다.
+
+```tsx
+import Toast from 'react-native-toast-message';
+import { getErrorMessage } from '@/utils/getErrorMessage';
+
+const handleLoad = async () => {
+  try {
+    const result = await getPublicData();
+  } catch (e) {
+    console.error(e);
+    Toast.show({ type: 'error', text1: getErrorMessage(e) });
+  }
+};
+```
 
 ### Alert
 확인/취소가 필요한 다이얼로그는 `components/ui/Alert` 사용. `Alert.alert()` 사용 금지.
