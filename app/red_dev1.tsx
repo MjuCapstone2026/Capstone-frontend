@@ -14,6 +14,10 @@ import { CheckButton } from '@/components/ui/CheckButton';
 import { HomeAIBanner } from '@/components/HomeAIBanner';
 import { ItineraryOverviewCard } from '@/components/ItineraryOverviewCard';
 import { NewTravelGenerateButton } from '@/components/NewTravelGenerateButton';
+import { useApi } from '@/hooks/useApi';
+import { getReservations, createReservation, updateReservation, deleteReservation } from '@/api/reservations';
+import Toast from 'react-native-toast-message';
+import { getErrorMessage } from '@/utils/getErrorMessage';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   const { colors } = useTheme();
@@ -29,6 +33,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export default function RedDev1Screen() {
   const { colors } = useTheme();
+  const { authRequest } = useApi();
   const [checkButtonChecked, setCheckButtonChecked] = useState(false);
   const [activeDay, setActiveDay] = useState(0);
   const [schedule1Status, setSchedule1Status] = useState<'upcoming' | 'completed'>('upcoming');
@@ -44,6 +49,129 @@ export default function RedDev1Screen() {
           <Text style={[styles.devLinkText, { color: colors.cardBg }]}>→ Red Dev2 (SafeArea)</Text>
         </Pressable>
       </Link>
+
+      <Section title='Reservations API'>
+        <Pressable style={[styles.devLink, { backgroundColor: colors.primary }]} onPress={async () => {
+          try {
+            // type: 'flight' | 'accommodation' / status: 'confirmed' | 'changed' | 'cancelled' 로 변경 가능
+            const data = await authRequest((token) => getReservations(token, { status: 'cancelled' }));
+            console.log('[GET] reservations:', data);
+          } catch (e) {
+            console.error('[GET] reservations error:', e);
+            Toast.show({ type: 'error', text1: getErrorMessage(e) });
+          }
+        }}>
+          <Text style={[styles.devLinkText, { color: colors.textTitle }]}>GET /reservations</Text>
+        </Pressable>
+        <Pressable style={[styles.devLink, { backgroundColor: colors.primary }]} onPress={async () => {
+          try {
+            // itineraryId: 본인 일정 ID로 교체
+            const data = await authRequest((token) => createReservation(token, {
+              itineraryId: '1bd530c9-15ac-436c-860a-dea361266ef8',
+              type: 'flight',
+              bookedBy: 'ai',
+              bookingUrl: 'https://booking.example.com/flight/123',
+              externalRefId: 'KE12345678',
+              detail: {
+                airline: '대한항공',
+                flight_no: 'KE123',
+                departure: { airport: 'ICN', datetime: '2026-05-01T09:00:00' },
+                arrival: { airport: 'NRT', datetime: '2026-05-01T11:30:00' },
+                seat_class: 'economy',
+                passengers: [{ name: '홍길동', passport: 'M12345678' }],
+              },
+              totalPrice: 320000,
+              currency: 'KRW',
+              reservedAt: '2026-04-03T21:20:00+09:00',
+            }));
+            console.log('[POST] createReservation (flight):', data);
+          } catch (e) {
+            console.error('[POST] createReservation (flight) error:', e);
+            Toast.show({ type: 'error', text1: getErrorMessage(e) });
+          }
+        }}>
+          <Text style={[styles.devLinkText, { color: colors.textTitle }]}>POST /reservations (flight)</Text>
+        </Pressable>
+        <Pressable style={[styles.devLink, { backgroundColor: colors.primary }]} onPress={async () => {
+          try {
+            // itineraryId: 본인 일정 ID로 교체
+            const data = await authRequest((token) => createReservation(token, {
+              itineraryId: '1bd530c9-15ac-436c-860a-dea361266ef8',
+              type: 'accommodation',
+              bookedBy: 'user',
+              externalRefId: 'LOTTE-20260501',
+              detail: {
+                hotel_name: '롯데호텔 도쿄',
+                room_type: '디럭스 더블',
+                check_in: '2026-05-01',
+                check_out: '2026-05-03',
+                guests: 2,
+              },
+              totalPrice: 180000,
+              currency: 'KRW',
+              reservedAt: '2026-04-03T21:20:00+09:00',
+            }));
+            console.log('[POST] createReservation (accommodation):', data);
+          } catch (e) {
+            console.error('[POST] createReservation (accommodation) error:', e);
+            Toast.show({ type: 'error', text1: getErrorMessage(e) });
+          }
+        }}>
+          <Text style={[styles.devLinkText, { color: colors.textTitle }]}>POST /reservations (accommodation)</Text>
+        </Pressable>
+        <Pressable style={[styles.devLink, { backgroundColor: colors.primary }]} onPress={async () => {
+          try {
+            // reservationId: GET으로 조회한 본인 예약 ID로 교체
+            const data = await authRequest((token) => updateReservation(token, '886f8962-bdbb-438a-9d8b-40200cd1666b', {
+              status: 'cancelled',
+              cancelledAt: new Date().toISOString(),
+            }));
+            console.log('[PATCH] updateReservation (cancelled):', data);
+          } catch (e) {
+            console.error('[PATCH] updateReservation (cancelled) error:', e);
+            Toast.show({ type: 'error', text1: getErrorMessage(e) });
+          }
+        }}>
+          <Text style={[styles.devLinkText, { color: colors.textTitle }]}>PATCH /reservations/:id (cancelled)</Text>
+        </Pressable>
+        <Pressable style={[styles.devLink, { backgroundColor: colors.primary }]} onPress={async () => {
+          try {
+            // reservationId: GET으로 조회한 본인 예약 ID로 교체
+            const data = await authRequest((token) => updateReservation(token, '886f8962-bdbb-438a-9d8b-40200cd1666b', {
+              status: 'changed',
+              detail: {
+                airline: '아시아나',
+                flight_no: 'OZ108',
+                departure: { airport: 'ICN', datetime: '2026-05-02T09:00:00' },
+                arrival: { airport: 'NRT', datetime: '2026-05-02T11:30:00' },
+                seat_class: 'economy',
+                passengers: [{ name: '홍길동', passport: 'M12345678' }],
+              },
+              totalPrice: 290000,
+              currency: 'KRW',
+              reservedAt: '2026-04-10T10:00:00+09:00',
+            }));
+            console.log('[PATCH] updateReservation (changed):', data);
+          } catch (e) {
+            console.error('[PATCH] updateReservation (changed) error:', e);
+            Toast.show({ type: 'error', text1: getErrorMessage(e) });
+          }
+        }}>
+          <Text style={[styles.devLinkText, { color: colors.textTitle }]}>PATCH /reservations/:id (changed)</Text>
+        </Pressable>
+        <Pressable style={[styles.devLink, { backgroundColor: colors.danger }]} onPress={async () => {
+          try {
+            // reservationId: GET으로 조회한 본인 예약 ID로 교체
+            const data = await authRequest((token) => deleteReservation(token, 'cdb640e7-c673-4fc9-8545-0e2d3149da26'));
+            console.log('[DELETE] deleteReservation:', data);
+          } catch (e) {
+            console.error('[DELETE] deleteReservation error:', e);
+            Toast.show({ type: 'error', text1: getErrorMessage(e) });
+          }
+        }}>
+          <Text style={[styles.devLinkText, { color: colors.textTitle }]}>DELETE /reservations/:id</Text>
+        </Pressable>
+      </Section>
 
       <Section title='ItineraryOverviewCard'>
         <ItineraryOverviewCard
