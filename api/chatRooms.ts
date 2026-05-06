@@ -51,6 +51,11 @@ type CreatedChatRoom = {
   updatedAt: string;
 };
 
+type DeletedChatRoom = {
+  roomId: string;
+  deleted: boolean;
+};
+
 type UpdateChatRoomNameRequest = {
   name: string;
 };
@@ -73,6 +78,11 @@ export const getChatRoom = (token: string, roomId: string) =>
 
 export const createChatRoom = (token: string, body: CreateChatRoomRequest) =>
   apiClient.post<CreatedChatRoom>(BASE, body, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+export const deleteChatRoom = (token: string, roomId: string) =>
+  apiClient.delete<DeletedChatRoom>(`${BASE}/${roomId}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
 
