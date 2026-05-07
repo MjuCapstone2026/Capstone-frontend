@@ -55,7 +55,7 @@ docs/design/screens/{Name}/*.svg
 
 ```txt
 app/(main)/plan-list.tsx                  -> /plan-list
-app/(main)/plan-list/[id]/index.tsx       -> /plan-list/[id]
+app/(main)/plan-list/[id].tsx             -> /plan-list/[id]
 app/(main)/plan-list/[id]/edit.tsx        -> /plan-list/[id]/edit
 app/(main)/plan-list/[id]/logs/[logId].tsx -> /plan-list/[id]/logs/[logId]
 app/(main)/chat/index.tsx                 -> /chat
