@@ -37,7 +37,7 @@ function LogBox({ log }: { log: string }) {
   const { colors } = useTheme();
   return (
     <View style={[styles.logBox, { backgroundColor: colors.cardBg, borderColor: colors.divider }]}>
-      <Text style={[styles.logText, { color: colors.textBody }]} selectable>
+      <Text style={[styles.logText, { color: colors.textTitle }]} selectable>
         {log || '—'}
       </Text>
     </View>
@@ -268,9 +268,9 @@ export default function YellowDev1Screen() {
       {/* ── Itineraries API 테스트 ── */}
 
       <Section title="[API] 공통 입력">
-        <Text style={[styles.label, { color: colors.textBody }]}>itineraryId (UUID)</Text>
+        <Text style={[styles.label, { color: colors.textTitle }]}>itineraryId (UUID)</Text>
         <TextInput
-          style={[styles.apiInput, { borderColor: colors.divider, color: colors.textBody, backgroundColor: colors.cardBg }]}
+          style={[styles.apiInput, { borderColor: colors.divider, color: colors.textTitle, backgroundColor: colors.cardBg }]}
           value={itineraryId}
           onChangeText={setItineraryId}
           placeholder="예: aaa-111"
@@ -324,9 +324,9 @@ export default function YellowDev1Screen() {
       <Section title="[API 5] PATCH /itineraries/{itineraryId}/items/status">
         <View style={styles.twoCol}>
           <View style={styles.flex1}>
-            <Text style={[styles.label, { color: colors.textBody }]}>date</Text>
+            <Text style={[styles.label, { color: colors.textTitle }]}>date</Text>
             <TextInput
-              style={[styles.apiInput, { borderColor: colors.divider, color: colors.textBody, backgroundColor: colors.cardBg }]}
+              style={[styles.apiInput, { borderColor: colors.divider, color: colors.textTitle, backgroundColor: colors.cardBg }]}
               value={itemDate}
               onChangeText={setItemDate}
               placeholder="YYYY-MM-DD"
@@ -334,9 +334,9 @@ export default function YellowDev1Screen() {
             />
           </View>
           <View style={styles.flex1}>
-            <Text style={[styles.label, { color: colors.textBody }]}>index</Text>
+            <Text style={[styles.label, { color: colors.textTitle }]}>index</Text>
             <TextInput
-              style={[styles.apiInput, { borderColor: colors.divider, color: colors.textBody, backgroundColor: colors.cardBg }]}
+              style={[styles.apiInput, { borderColor: colors.divider, color: colors.textTitle, backgroundColor: colors.cardBg }]}
               value={itemIndex}
               onChangeText={setItemIndex}
               keyboardType="numeric"
@@ -344,7 +344,7 @@ export default function YellowDev1Screen() {
             />
           </View>
         </View>
-        <Text style={[styles.label, { color: colors.textBody }]}>status</Text>
+        <Text style={[styles.label, { color: colors.textTitle }]}>status</Text>
         <TogglePair options={['todo', 'done'] as const} value={itemStatus} onChange={setItemStatus} />
         <Pressable style={[styles.openButton, { backgroundColor: colors.primary }]}
           onPress={() => call(() => authRequest((token) =>
@@ -363,7 +363,7 @@ export default function YellowDev1Screen() {
       </Section>
 
       <Section title="[API 7] PATCH /itineraries/{itineraryId}/status">
-        <Text style={[styles.label, { color: colors.textBody }]}>status</Text>
+        <Text style={[styles.label, { color: colors.textTitle }]}>status</Text>
         <TogglePair options={['draft', 'completed'] as const} value={itineraryStatus} onChange={setItineraryStatus} />
         <Pressable style={[styles.openButton, { backgroundColor: colors.primary }]}
           onPress={() => call(() => authRequest((token) =>
