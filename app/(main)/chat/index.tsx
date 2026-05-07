@@ -8,26 +8,25 @@ import { ChatRoomScreen } from '@/screens/ChatRoomScreen';
 export default function ChatRoute() {
   const { chatId, mode } = useLocalSearchParams<{ chatId?: string; mode?: 'new' }>();
   const isNew = mode === 'new';
-  const [recentChatId, setRecentChatId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  // const { authRequest } = useApi(); // TODO: 활성화
 
   useEffect(() => {
     if (isNew || chatId) {
       setIsLoading(false);
       return;
     }
-    // TODO: API 연결 후 아래 주석 해제
-    // authRequest(getChatList).then(res => {
-    //   setRecentChatId(res.data[0]?.id ?? null);
-    //   setIsLoading(false);
-    // });
-    setIsLoading(false); // 임시
+
+    setIsLoading(false);
   }, [isNew, chatId]);
 
   if (isNew) return <NewChatScreen />;
-  if (chatId) return <ChatRoomScreen chatId={chatId} />;
-  if (isLoading) return <View style={{ flex: 1 }}><ActivityIndicator /></View>;
-  if (recentChatId) return <ChatRoomScreen chatId={recentChatId} />;
+  if (chatId) return <ChatRoomScreen chatId={String(chatId)} />;
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1 }}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
   return <NewChatScreen />;
 }

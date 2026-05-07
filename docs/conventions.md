@@ -1,29 +1,67 @@
 # Conventions — 프론트엔드 코딩 스타일
 
+## Route Reference
+
+Expo Router 라우트는 `app/` 파일 구조로 등록된다. 문서나 skill에 경로를 적는 것만으로는 라우트가 생성되지 않으므로, 화면 이동 코드에서 사용하는 경로는 반드시 실제 `app/` 파일이 있어야 한다.
+
+현재 주요 라우트:
+
+| 파일 | 실제 경로 | 역할 |
+|---|---|---|
+| `app/(main)/home.tsx` | `/home` | HomeScreen |
+| `app/(main)/chat/index.tsx` | `/chat` | 새 채팅 또는 기본 채팅 진입 |
+| `app/(main)/chat/[chatId].tsx` | `/chat/[chatId]` | 특정 채팅방 |
+| `app/(main)/plan.tsx` | `/plan` | PlanScreen |
+| `app/(main)/plan-list.tsx` | `/plan-list` | 여행 일정/예약 목록 |
+| `app/(main)/plan-list/[id]/index.tsx` | `/plan-list/[id]` | 여행 일정 상세 |
+| `app/(main)/plan-list/[id]/edit.tsx` | `/plan-list/[id]/edit` | 여행 일정 상세 편집 |
+| `app/(main)/plan-list/[id]/logs/[logId].tsx` | `/plan-list/[id]/logs/[logId]` | 변경 이력 상세 |
+| `app/(main)/setting.tsx` | `/setting` | 설정 |
+| `app/(auth)/sign-in.tsx` | `/sign-in` | 로그인 |
+
+동적 라우트 이동은 문자열 조합보다 typed pathname + params를 우선 사용한다.
+
+```tsx
+router.push({ pathname: '/plan-list/[id]', params: { id } });
+router.push({ pathname: '/plan-list/[id]/edit', params: { id } });
+router.push({ pathname: '/plan-list/[id]/logs/[logId]', params: { id, logId } });
+router.navigate({ pathname: '/chat/[chatId]', params: { chatId } });
+```
+
+`app/` 파일은 라우트 진입점만 담당하고, 실제 UI는 `screens/`에 둔다.
+
+---
+
 ## 1. 아키텍처
 
 ### 디렉토리 구조
 ```
 app/                         ← 라우팅만 담당 (UI 없음)
+├── _layout.tsx              ← 루트 레이아웃 (ClerkProvider, QueryClientProvider, Toast 등)
+├── index.tsx                ← 초기 진입 라우트
 ├── oauth-native-callback.tsx ← Android OAuth callback 수신 라우트
 ├── (auth)/
 │   └── sign-in.tsx          ← LoginScreen 렌더링, 로그인 상태면 /home 이동
-├── (main)/                  ← Stack + 커스텀 BottomNavigation 레이아웃
-│   ├── _layout.tsx          ← Stack navigator + BottomNavigation 컴포넌트
-│   ├── home.tsx             ← HomeScreen 진입점
-│   ├── chat.tsx             ← ChatScreen 진입점 (params로 분기)
-│   ├── plan.tsx             ← PlanScreen 진입점
-│   ├── plan-list.tsx        ← PlanListScreen 진입점
-│   ├── setting.tsx          ← SettingScreen 진입점
-│   └── plan-list/
-│       └── [id]/
-│           ├── index.tsx    ← PlanListDetailScreen 진입점
-│           └── edit.tsx     ← PlanListDetailEditScreen 진입점
-└── _layout.tsx              ← 루트 레이아웃 (Toast, ClerkProvider 등)
+└── (main)/                  ← Stack + 커스텀 BottomNavigation 레이아웃
+    ├── _layout.tsx          ← Stack navigator + BottomNavigation 컴포넌트
+    ├── home.tsx             ← HomeScreen 진입점
+    ├── plan.tsx             ← PlanScreen 진입점
+    ├── plan-list.tsx        ← PlanListScreen 진입점
+    ├── setting.tsx          ← SettingScreen 진입점
+    ├── chat/
+    │   ├── index.tsx        ← /chat
+    │   └── [chatId].tsx     ← /chat/[chatId]
+    └── plan-list/
+        └── [id]/
+            ├── index.tsx    ← /plan-list/[id]
+            ├── edit.tsx     ← /plan-list/[id]/edit
+            └── logs/
+                └── [logId].tsx ← /plan-list/[id]/logs/[logId]
 screens/                     ← 실제 화면 UI 담당
 ├── HomeScreen.tsx
 ├── NewChatScreen.tsx
 ├── ChatRoomScreen.tsx
+├── ChangeLogDetailScreen.tsx
 ├── PlanScreen.tsx
 ├── PlanListScreen.tsx
 ├── PlanListDetailScreen.tsx
@@ -38,7 +76,8 @@ components/
 └── {Name}.tsx      도메인 특화 컴포넌트 (ChatBubble, TravelPlanCard 등)
 hooks/              커스텀 훅
 utils/              순수 유틸리티 함수
-constants/          색상, 폰트 등 상수
+constants/          테마, 레이아웃, query key 등 상수
+lib/                앱 단위 인스턴스 (queryClient 등)
 ```
 
 ### 네비게이션 패턴
@@ -50,10 +89,11 @@ constants/          색상, 폰트 등 상수
 인증, 로그인/로그아웃, Android OAuth callback 흐름은 `docs/auth-routing.md`를 참고한다.
 
 ```
-파일 위치                    실제 경로
-app/(main)/home.tsx    →    /home
-app/(main)/chat.tsx    →    /chat
-app/(auth)/sign-in.tsx →    /sign-in
+파일 위치                         실제 경로
+app/(main)/home.tsx          →    /home
+app/(main)/chat/index.tsx    →    /chat
+app/(main)/chat/[chatId].tsx →    /chat/[chatId]
+app/(auth)/sign-in.tsx       →    /sign-in
 ```
 
 ```tsx
@@ -90,9 +130,9 @@ export default function MainLayout() {
 |---|---|---|
 | QuickMenu "AI와 채팅" | `/chat` | navigate |
 | QuickMenu "일정 보기" | `/plan` | navigate |
-| RecentTravelSection 카드 탭 | `/plan-list/:id` | push |
+| RecentTravelSection 카드 탭 | `/plan-list/[id]` | push |
 | RecentTravelSection "전체보기" | `/plan-list` | navigate |
-| RecentChatSection 카드 탭 | `/chat?chatId=:id` | navigate |
+| RecentChatSection 카드 탭 | `/chat` `{ chatId }` | navigate |
 | RecentChatSection "전체보기" | NavigationDrawer 오픈 | 컴포넌트 상태 |
 
 **ChatScreen 진입 분기**
@@ -116,7 +156,7 @@ router.navigate({
 });
 ```
 
-`chat.tsx` 내부에서 params로 분기:
+`chat/index.tsx` 내부에서 params로 분기:
 ```tsx
 const { chatId, mode } = useLocalSearchParams<{
   chatId?: string;
@@ -132,17 +172,17 @@ const isNew = mode === 'new';
 **PlanScreen**
 | 액션 | 목적지 | 방식 |
 |---|---|---|
-| NewTravelGenerateButton (Empty 상태) | `/chat?mode=new` | navigate |
+| NewTravelGenerateButton (Empty 상태) | `/chat` `{ mode: 'new' }` | navigate |
 
 **PlanListScreen**
 | 액션 | 목적지 | 방식 |
 |---|---|---|
-| TravelPlanCard 탭 | `/plan-list/:id` | push |
+| TravelPlanCard 탭 | `/plan-list/[id]` | push |
 
 **PlanListDetailScreen**
 | 액션 | 목적지 | 방식 |
 |---|---|---|
-| "편집" 버튼 | `/plan-list/:id/edit` | push |
+| "편집" 버튼 | `/plan-list/[id]/edit` | push |
 
 **PlanListDetailEditScreen**
 | 액션 | 목적지 | 방식 |
@@ -188,7 +228,7 @@ const res = await apiClient.get('/api/...', { headers: { Authorization: `Bearer 
 `app/` 파일은 라우팅 진입점만 담당. UI는 `screens/`에서 import. 단, params나 API 결과에 따른 분기 로직은 예외적으로 라우트 파일에 작성 허용.
 
 ```tsx
-// app/(main)/chat.tsx
+// app/(main)/chat/index.tsx
 import { NewChatScreen } from '@/screens/NewChatScreen';
 import { ChatRoomScreen } from '@/screens/ChatRoomScreen';
 import { PlanListScreen } from '@/screens/PlanListScreen';
@@ -208,30 +248,32 @@ export default function ChatRoute() {
 
 ### 화면(Screen) 컴포넌트 패턴
 ```typescript
-export default function {Name}Screen() {
-  // 1. 상태 선언
-  const [isLoading, setIsLoading] = useState(false);
-
-  // 2. 훅
+export function {Name}Screen() {
+  // 훅
   const { colors } = useTheme();
   const { authRequest } = useApi();
   const router = useRouter();
 
-  // 3. 이펙트
-  useEffect(() => {
-    // 초기 데이터 로드
-  }, []);
+  // API 데이터 조회 — useEffect + setState 직접 fetch 금지, React Query 사용
+  const { data, isLoading, error } = useQuery({
+    queryKey: queryKeys.{domain}.all,
+    queryFn: () => authRequest(get{Name}s),
+    staleTime: STALE_TIMES.{domain}.all,
+    // detail(id), logs(id), messages(roomId)처럼 id별 캐시가 쌓이는 쿼리는 gcTime: GC_TIMES.{domain}.{key} 도 추가
+  });
 
-  // 4. 핸들러 함수
+  useEffect(() => {
+    if (!error) return;
+    Toast.show({ type: 'error', text1: getErrorMessage(error) });
+  }, [error]);
+
+  // 핸들러 함수
   // 단순 버튼 클릭(onPress) — useCallback 불필요
   const handleAction = async () => {
-    setIsLoading(true);
     try {
-      // ...
+      // 서버 데이터 변경은 useMutation으로 처리
     } catch (e) {
       console.error(e);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -244,14 +286,14 @@ export default function {Name}Screen() {
     }
   }, [externalHookFn, router]);
 
-  // 5. 로딩/에러 분기
+  // 로딩/에러 분기
   if (isLoading) return <ActivityIndicator />;
 
-  // 6. JSX
+  // JSX
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.pageBg }]}>
+    <View style={[styles.container, { backgroundColor: colors.pageBg }]}>
       {/* ... */}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -271,7 +313,7 @@ export function SearchForm({ onSubmit }: { onSubmit: (query: string) => void }) 
 }
 
 // ✅ Screen — API 호출 담당
-export default function SearchScreen() {
+export function SearchScreen() {
   const handleSubmit = async (query: string) => {
     const result = await authRequest((token) => searchPlaces(token, query));
   };
@@ -524,11 +566,11 @@ const styles = StyleSheet.create({
 
 **Screen** — 콘텐츠가 바텀바에 가려지지 않도록 하단 여백 확보
 ```tsx
-// app/(main)/some-screen.tsx
+// screens/SomeScreen.tsx
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BOTTOM_NAVIGATION } from '@/constants/layout';
 
-export default function SomeScreen() {
+export function SomeScreen() {
   const insets = useSafeAreaInsets();
 
   return (
