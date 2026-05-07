@@ -1,32 +1,24 @@
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
-
+import { useEffect } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { NewChatScreen } from '@/screens/NewChatScreen';
-import { ChatRoomScreen } from '@/screens/ChatRoomScreen';
+import { queryKeys } from '@/constants/queryKeys';
 
 export default function ChatRoute() {
-  const { chatId, mode } = useLocalSearchParams<{ chatId?: string; mode?: 'new' }>();
-  const isNew = mode === 'new';
-  const [isLoading, setIsLoading] = useState(true);
+  const { mode } = useLocalSearchParams<{ mode?: 'new' }>();
+  const router = useRouter();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (isNew || chatId) {
-      setIsLoading(false);
-      return;
+    if (mode === 'new') return;
+
+    const data = queryClient.getQueryData<{ rooms: { roomId: string }[] }>(queryKeys.chatRooms.all);
+    const recentRoomId = data?.rooms[0]?.roomId;
+
+    if (recentRoomId) {
+      router.replace({ pathname: '/chat/[chatId]', params: { chatId: recentRoomId } });
     }
+  }, []);
 
-    setIsLoading(false);
-  }, [isNew, chatId]);
-
-  if (isNew) return <NewChatScreen />;
-  if (chatId) return <ChatRoomScreen chatId={String(chatId)} />;
-  if (isLoading) {
-    return (
-      <View style={{ flex: 1 }}>
-        <ActivityIndicator />
-      </View>
-    );
-  }
   return <NewChatScreen />;
 }
