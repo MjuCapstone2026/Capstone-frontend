@@ -16,9 +16,9 @@ type Props = {
   onDayPress: (day: number) => void;
   onBack: () => void;
   onEdit?: () => void;
-  changeLogs?: string[];
-  onChangeLogPress?: (date: string | undefined) => void;
-  changeLogDate?: string;
+  changeLogs?: { logId: string; date: string }[];
+  onChangeLogPress?: (logId: string) => void;
+  hidden?: boolean;
 };
 
 export function ItineraryOverviewCard2BeforeEdit({
@@ -32,7 +32,7 @@ export function ItineraryOverviewCard2BeforeEdit({
   onEdit,
   changeLogs = [],
   onChangeLogPress,
-  changeLogDate,
+  hidden = false,
 }: Props) {
   const { colors, scheme } = useTheme();
   const insets = useSafeAreaInsets();
@@ -84,8 +84,10 @@ export function ItineraryOverviewCard2BeforeEdit({
     outputRange: ['0deg', '180deg'],
   });
 
-  const showEdit = !!onEdit && !isExpanded && !changeLogDate;
+  const showEdit = !!onEdit && !isExpanded;
   const activeTabText = scheme === 'dark' ? colors.textTitle : colors.cardBg;
+
+  if (hidden) return null;
 
   return (
     <View
@@ -106,10 +108,6 @@ export function ItineraryOverviewCard2BeforeEdit({
             if (isExpanded) {
               logScrollYRef.current = 0;
               toggleExpanded();
-              onChangeLogPress?.(undefined);
-            } else if (changeLogDate) {
-              logScrollYRef.current = 0;
-              onChangeLogPress?.(undefined);
             } else {
               onBack();
             }
@@ -161,7 +159,7 @@ export function ItineraryOverviewCard2BeforeEdit({
 
       {/* Date / location */}
       <Text style={[styles.subtitle, { color: colors.textCaption }]}>
-        {changeLogDate ? `${changeLogDate} • 변경 이력 조회 중` : `${date} • ${location}`}
+        {date} • {location}
       </Text>
 
       {/* Collapsed: Day tabs / Expanded: change log list */}
@@ -186,23 +184,21 @@ export function ItineraryOverviewCard2BeforeEdit({
                   setShowLogBottomFade(contentOffset.y + layoutMeasurement.height < contentSize.height - 1);
                 }}
               >
-                {changeLogs.map(logDate => {
-                  const isActive = logDate === changeLogDate;
+                {changeLogs.map(({ logId, date: logDate }) => {
                   return (
                     <Pressable
-                      key={logDate}
+                      key={logId}
                       onPress={() => {
-                        onChangeLogPress?.(logDate);
-                        toggleExpanded();
+                        onChangeLogPress?.(logId);
                       }}
                       style={[
                         styles.changeLogItem,
-                        { backgroundColor: isActive ? colors.primary : colors.secondarySurface },
+                        { backgroundColor: colors.secondarySurface },
                       ]}
                     >
                       {({ pressed }) => (
                         <>
-                          <Text style={[styles.changeLogDate, { color: isActive ? activeTabText : colors.textCaption }]}>
+                          <Text style={[styles.changeLogDate, { color: colors.textCaption }]}>
                             {logDate}
                           </Text>
                           {pressed && (
