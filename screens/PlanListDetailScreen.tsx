@@ -67,11 +67,9 @@ export function PlanListDetailScreen({ id }: Props) {
     Toast.show({ type: 'error', text1: getErrorMessage(logsError) });
   }, [logsError]);
 
-  const logs = logsData?.logs ?? [];
-
   const changeLogs = useMemo(
-    () => logs.map((log) => ({ logId: log.logId, date: formatLogDate(log.createdAt) })),
-    [logs],
+    () => (logsData?.logs ?? []).map((log) => ({ logId: log.logId, date: formatLogDate(log.createdAt) })),
+    [logsData?.logs],
   );
 
   const activeDayPlans = useMemo(() => {
