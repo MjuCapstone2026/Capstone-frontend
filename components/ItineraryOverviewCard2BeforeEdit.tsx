@@ -305,7 +305,7 @@ export function ItineraryOverviewCard2BeforeEdit({
 const styles = StyleSheet.create({
   container: {
     borderBottomWidth: 1,
-    paddingBottom: 12,
+    paddingBottom: 8,
     paddingHorizontal: 12,
     gap: 8,
   },
