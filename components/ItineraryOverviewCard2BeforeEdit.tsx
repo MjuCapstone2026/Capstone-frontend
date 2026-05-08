@@ -236,6 +236,8 @@ export function ItineraryOverviewCard2BeforeEdit({
           )}
         </View>
       ) : (
+        <>
+          <View style={[styles.sectionDivider, { backgroundColor: colors.divider }]} />
         <View style={styles.tabScrollWrapper}>
           <ScrollView
             ref={dayScrollRef}
@@ -294,6 +296,7 @@ export function ItineraryOverviewCard2BeforeEdit({
             />
           )}
         </View>
+        </>
       )}
     </View>
   );
@@ -302,7 +305,7 @@ export function ItineraryOverviewCard2BeforeEdit({
 const styles = StyleSheet.create({
   container: {
     borderBottomWidth: 1,
-    paddingBottom: 24,
+    paddingBottom: 12,
     paddingHorizontal: 12,
     gap: 8,
   },
@@ -346,6 +349,11 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 16,
   },
+  sectionDivider: {
+    height: 1,
+    marginHorizontal: 16,
+    marginTop: 16,
+  },
   tab: {
     borderRadius: BorderRadius.md,
     paddingVertical: 6,
@@ -360,6 +368,7 @@ const styles = StyleSheet.create({
   },
   tabScrollWrapper: {
     position: 'relative',
+    paddingVertical: 8,
   },
   tabFadeLeft: {
     position: 'absolute',
@@ -378,6 +387,7 @@ const styles = StyleSheet.create({
   changeLogSection: {
     gap: 8,
     paddingHorizontal: 16,
+    marginTop: 12,
   },
   changeLogScrollWrapper: {
     position: 'relative',
