@@ -332,6 +332,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     gap: 8,
+    marginTop: 8,
   },
   title: {
     ...Typography['heading-xl'],
