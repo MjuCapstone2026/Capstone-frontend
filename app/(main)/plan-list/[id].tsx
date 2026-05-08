@@ -1,8 +1,9 @@
 import { useLocalSearchParams } from 'expo-router';
-import { PlanListDetailScreen } from '@/screens/PlanListDetailScreen';
+import { PlanListDetailTemporaryScreen } from '@/screens/PlanListDetailTemporaryScreen';
 
 export default function PlanListDetailRoute() {
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  return <PlanListDetailScreen id={String(id)} />;
+  // TODO: 추후 실제 PlanListDetailScreen 구현으로 교체 예정.
+  return <PlanListDetailTemporaryScreen id={String(id)} />;
 }
