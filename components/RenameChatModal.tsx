@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, Modal, Pressable, TextInput } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { Modal, StyleSheet, View, Text, Pressable, TextInput } from 'react-native';
 import { useTheme } from '@/hooks/useTheme';
 import { Typography, BorderRadius, Elevation } from '@/constants/theme';
 
@@ -13,10 +13,17 @@ type Props = {
 export function RenameChatModal({ visible, initialName, onSave, onCancel }: Props) {
   const { colors, scheme } = useTheme();
   const [name, setName] = useState(initialName);
+  const inputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     if (visible) setName(initialName);
   }, [visible, initialName]);
+
+  useEffect(() => {
+    if (!visible) return;
+    const timer = setTimeout(() => inputRef.current?.focus(), 100);
+    return () => clearTimeout(timer);
+  }, [visible]);
 
   return (
     <Modal transparent visible={visible} animationType="fade" statusBarTranslucent>
@@ -31,11 +38,12 @@ export function RenameChatModal({ visible, initialName, onSave, onCancel }: Prop
           <View style={styles.content}>
             <Text style={[styles.title, { color: colors.textTitle }]}>채팅 이름 변경</Text>
             <TextInput
+              ref={inputRef}
               style={[styles.input, { backgroundColor: colors.secondarySurface, color: colors.textTitle }]}
               value={name}
               onChangeText={setName}
               placeholderTextColor={colors.textCaption}
-              autoFocus
+              showSoftInputOnFocus
             />
           </View>
 
@@ -98,7 +106,6 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     ...Typography['body-md'],
     lineHeight: undefined,
-    
   },
   buttonRow: {
     flexDirection: 'row',
