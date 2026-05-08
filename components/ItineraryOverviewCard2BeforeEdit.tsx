@@ -411,6 +411,7 @@ const styles = StyleSheet.create({
   changeLogEmpty: {
     ...Typography['body-lg'],
     textAlign: 'center',
+    marginBottom: 11,
   },
   changeLogHeader: {
     ...Typography['body-lg'],
