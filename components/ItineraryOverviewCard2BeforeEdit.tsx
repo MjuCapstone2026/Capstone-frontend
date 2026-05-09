@@ -39,11 +39,13 @@ export function ItineraryOverviewCard2BeforeEdit({
   const { colors, scheme } = useTheme();
   const insets = useSafeAreaInsets();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [measuredHeight, setMeasuredHeight] = useState(0);
   const [showLogTopFade, setShowLogTopFade] = useState(false);
   const [showLogBottomFade, setShowLogBottomFade] = useState(true);
   const [showDayLeftFade, setShowDayLeftFade] = useState(false);
   const [showDayRightFade, setShowDayRightFade] = useState(true);
   const chevronAnim = useRef(new Animated.Value(0)).current;
+  const hiddenAnim = useRef(new Animated.Value(hidden ? 1 : 0)).current;
   const dayScrollRef = useRef<ScrollView>(null);
   const logScrollRef = useRef<ScrollView>(null);
   const dayScrollXRef = useRef(0);
@@ -89,14 +91,47 @@ export function ItineraryOverviewCard2BeforeEdit({
   const showEdit = !!onEdit && !isExpanded && !changeLogDate;
   const activeTabText = scheme === 'dark' ? colors.textTitle : colors.cardBg;
 
-  if (hidden) return null;
+  useEffect(() => {
+    Animated.timing(hiddenAnim, {
+      toValue: hidden ? 1 : 0,
+      duration: 180,
+      useNativeDriver: false,
+    }).start();
+  }, [hidden, hiddenAnim]);
+
+  const headerAnimatedStyle = {
+    marginBottom: hiddenAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0, -measuredHeight],
+    }),
+    opacity: hiddenAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: [1, 0],
+    }),
+    transform: [
+      {
+        translateY: hiddenAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, -measuredHeight],
+        }),
+      },
+    ],
+  };
 
   return (
-    <View
+    <Animated.View
+      pointerEvents={hidden ? 'none' : 'auto'}
+      onLayout={({ nativeEvent }) => {
+        const nextHeight = nativeEvent.layout.height;
+        if (nextHeight > 0 && Math.abs(nextHeight - measuredHeight) > 1) {
+          setMeasuredHeight(nextHeight);
+        }
+      }}
       style={[
         styles.container,
+        headerAnimatedStyle,
         {
-          paddingTop: 12 + insets.top,
+          paddingTop: 6 + insets.top,
           backgroundColor: colors.cardBg,
           borderBottomColor: colors.divider,
         },
@@ -301,7 +336,7 @@ export function ItineraryOverviewCard2BeforeEdit({
         </View>
         </>
       )}
-    </View>
+    </Animated.View>
   );
 }
 
@@ -317,7 +352,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 12,
   },
   textButton: {
     flexDirection: 'row',
@@ -338,7 +372,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     gap: 8,
-    marginTop: 8,
+    marginTop: 12,
   },
   title: {
     ...Typography['heading-xl'],
@@ -400,10 +434,10 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   changeLogScroll: {
-    maxHeight: 111,
+    maxHeight: 124,
   },
   changeLogScrollContent: {
-    gap: 8,
+    gap: 10,
   },
   changeLogFadeTop: {
     position: 'absolute',
@@ -429,7 +463,7 @@ const styles = StyleSheet.create({
   },
   changeLogItem: {
     borderRadius: BorderRadius.md,
-    paddingVertical: 8,
+    paddingVertical: 10,
     paddingHorizontal: 16,
     overflow: 'hidden',
   },
