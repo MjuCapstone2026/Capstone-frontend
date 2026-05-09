@@ -448,9 +448,9 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    paddingVertical: 12,
+    paddingVertical: 16,
     paddingHorizontal: 16,
-    gap: 8,
+    gap: 10,
   },
   header: {
     flexDirection: 'row',
@@ -501,8 +501,9 @@ const styles = StyleSheet.create({
     height: 1,
   },
   expanded: {
-    gap: 8,
+    gap: 10,
     paddingLeft: 12,
+    paddingTop: 2,
   },
   reservationSubtitle: {
     ...Typography['heading-md'],
