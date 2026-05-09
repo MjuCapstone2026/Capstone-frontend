@@ -1,15 +1,283 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import MapView from 'react-native-maps';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import Toast from 'react-native-toast-message';
 import { useTheme } from '@/hooks/useTheme';
+import { useApi } from '@/hooks/useApi';
+import { Typography } from '@/constants/theme';
+import { getErrorMessage } from '@/utils/getErrorMessage';
+import { GC_TIMES, queryKeys, STALE_TIMES } from '@/constants/queryKeys';
+import { DayPlanItem, getItineraries, getItinerary, updateItemStatus } from '@/api/itineraries';
+import { ItineraryOverviewCard } from '@/components/ItineraryOverviewCard';
+import { DayScheduleItem } from '@/components/DayScheduleItem';
+import { NewTravelGenerateButton } from '@/components/NewTravelGenerateButton';
+import { BOTTOM_NAVIGATION } from '@/constants/layout';
+
+const DAYS_OF_WEEK = ['일', '월', '화', '수', '목', '금', '토'] as const;
+
+type Itinerary = {
+  itineraryId: string;
+  name: string;
+  status: 'draft' | 'completed';
+  destination: string;
+  totalDays: number;
+  startDate: string;
+};
+
+const formatDateKey = (date: Date): string => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
+const generateDayTabs = (startDate: string, totalDays: number) => {
+  const start = new Date(startDate);
+  return Array.from({ length: totalDays }, (_, i) => {
+    const date = new Date(start);
+    date.setDate(date.getDate() + i);
+    return {
+      label: `Day ${i + 1}`,
+      date: `${date.getMonth() + 1}/${date.getDate()}`,
+      dayOfWeek: DAYS_OF_WEEK[date.getDay()],
+    };
+  });
+};
+
+const findActiveItinerary = (itineraries: Itinerary[]): Itinerary | null => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return (
+    itineraries.find(it => {
+      const start = new Date(it.startDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(start);
+      end.setDate(end.getDate() + it.totalDays - 1);
+      return today >= start && today <= end;
+    }) ?? null
+  );
+};
+
+const getTodayDayIndex = (startDate: string, totalDays: number): number => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const start = new Date(startDate);
+  start.setHours(0, 0, 0, 0);
+  const diffDays = Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+  return Math.max(0, Math.min(diffDays, totalDays - 1));
+};
+
+const parseTimeRange = (time: string): { startTime: string; endTime: string } => {
+  const sep = time.includes('~') ? '~' : time.includes('-') ? '-' : null;
+  if (sep) {
+    const parts = time.split(sep);
+    return { startTime: parts[0]?.trim() ?? time, endTime: parts[1]?.trim() ?? '' };
+  }
+  return { startTime: time, endTime: '' };
+};
 
 export function PlanScreen() {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const { authRequest } = useApi();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  const [selectedDayIndex, setSelectedDayIndex] = useState(0);
+
+  const { data: listData, isLoading: listLoading, error: listError } = useQuery({
+    queryKey: queryKeys.itineraries.all,
+    queryFn: () => authRequest(getItineraries),
+    staleTime: STALE_TIMES.itineraries.all,
+  });
+
+  const activeItinerary = listData ? findActiveItinerary(listData.itineraries) : null;
+
+  useEffect(() => {
+    if (!activeItinerary) return;
+    setSelectedDayIndex(getTodayDayIndex(activeItinerary.startDate, activeItinerary.totalDays));
+  }, [activeItinerary?.itineraryId]);
+
+  const { data: detail, isLoading: detailLoading, error: detailError } = useQuery({
+    queryKey: queryKeys.itineraries.detail(activeItinerary?.itineraryId ?? ''),
+    queryFn: () => authRequest((token) => getItinerary(token, activeItinerary!.itineraryId)),
+    enabled: !!activeItinerary,
+    staleTime: STALE_TIMES.itineraries.detail,
+    gcTime: GC_TIMES.itineraries.detail,
+  });
+
+  useEffect(() => {
+    if (!listError) return;
+    Toast.show({ type: 'error', text1: getErrorMessage(listError) });
+  }, [listError]);
+
+  useEffect(() => {
+    if (!detailError) return;
+    Toast.show({ type: 'error', text1: getErrorMessage(detailError) });
+  }, [detailError]);
+
+  const mutation = useMutation({
+    mutationFn: ({ dateKey, itemIndex, newStatus }: { dateKey: string; itemIndex: number; newStatus: 'todo' | 'done' }) =>
+      authRequest((token) =>
+        updateItemStatus(token, activeItinerary!.itineraryId, {
+          date: dateKey,
+          index: itemIndex,
+          status: newStatus,
+        }),
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.itineraries.detail(activeItinerary!.itineraryId) });
+    },
+    onError: (e: unknown) => {
+      Toast.show({ type: 'error', text1: getErrorMessage(e) });
+    },
+  });
+
+  if (listLoading) {
+    return (
+      <View style={[styles.container, styles.center, { backgroundColor: colors.pageBg }]}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
+  if (!activeItinerary) {
+    return (
+      <View style={[styles.container, styles.emptyContainer, { backgroundColor: colors.pageBg }]}>
+        <Text style={[styles.emptyTitle, { color: colors.textTitle }]}>오늘은 여행 일정이 없어요</Text>
+        <Text style={[styles.emptySubtitle, { color: colors.textCaption }]}>마실을 떠날 준비가 됐나요?</Text>
+        <NewTravelGenerateButton
+          onPress={() => router.navigate({ pathname: '/chat', params: { mode: 'new' } })}
+        />
+      </View>
+    );
+  }
+
+  const dayTabs = generateDayTabs(activeItinerary.startDate, activeItinerary.totalDays);
+
+  const selectedDate = new Date(activeItinerary.startDate);
+  selectedDate.setDate(selectedDate.getDate() + selectedDayIndex);
+  const selectedDateKey = formatDateKey(selectedDate);
+  const selectedItems: DayPlanItem[] = detail?.dayPlans[selectedDateKey] ?? [];
+
+  const completedCount = selectedItems.filter(item => item.status === 'done').length;
+  const totalCount = selectedItems.length;
+
   return (
     <View style={[styles.container, { backgroundColor: colors.pageBg }]}>
-      <Text>PlanScreen</Text>
+      <ItineraryOverviewCard
+        title={activeItinerary.name}
+        days={dayTabs}
+        activeDay={selectedDayIndex}
+        onDayPress={setSelectedDayIndex}
+        completedCount={completedCount}
+        totalCount={totalCount}
+      />
+
+      <View style={styles.mapContainer}>
+        <MapView
+          style={styles.map}
+          initialRegion={{
+            latitude: 36.5,
+            longitude: 127.5,
+            latitudeDelta: 5,
+            longitudeDelta: 5,
+          }}
+        />
+        <Text style={[styles.osmAttribution, { color: colors.textCaption }]}>
+          © OpenStreetMap contributors
+        </Text>
+      </View>
+
+      {detailLoading ? (
+        <View style={[styles.center, { flex: 1 }]}>
+          <ActivityIndicator />
+        </View>
+      ) : (
+        <ScrollView
+          style={styles.scheduleList}
+          contentContainerStyle={[
+            styles.scheduleContent,
+            { paddingBottom: BOTTOM_NAVIGATION + insets.bottom + 16 },
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
+          {selectedItems.length === 0 ? (
+            <Text style={[styles.emptyDay, { color: colors.textCaption }]}>
+              이 날의 일정이 없어요.
+            </Text>
+          ) : (
+            selectedItems.map((item) => {
+              const { startTime, endTime } = parseTimeRange(item.time);
+              return (
+                <DayScheduleItem
+                  key={item.index}
+                  title={item.plan_name}
+                  startTime={startTime}
+                  endTime={endTime}
+                  location={item.place}
+                  memo={item.note || undefined}
+                  status={item.status === 'done' ? 'completed' : 'upcoming'}
+                  onToggle={() =>
+                    mutation.mutate({
+                      dateKey: selectedDateKey,
+                      itemIndex: item.index,
+                      newStatus: item.status === 'done' ? 'todo' : 'done',
+                    })
+                  }
+                />
+              );
+            })
+          )}
+        </ScrollView>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  center: { alignItems: 'center', justifyContent: 'center' },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingHorizontal: 24,
+  },
+  emptyTitle: {
+    ...Typography['heading-lg'],
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    ...Typography['body-md'],
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  mapContainer: {
+    position: 'relative',
+  },
+  map: {
+    height: 200,
+  },
+  osmAttribution: {
+    ...Typography['label'],
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+  },
+  scheduleList: {
+    flex: 1,
+  },
+  scheduleContent: {
+    padding: 16,
+    gap: 12,
+  },
+  emptyDay: {
+    ...Typography['body-md'],
+    textAlign: 'center',
+    marginTop: 24,
+  },
 });
