@@ -6,11 +6,12 @@ import { useRouter } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import { useApi } from '@/hooks/useApi';
 import { useTheme } from '@/hooks/useTheme';
-import { DayPlanCost, getItinerary, getItineraryLogs } from '@/api/itineraries';
+import { getItinerary, getItineraryLogs } from '@/api/itineraries';
 import { GC_TIMES, queryKeys, STALE_TIMES } from '@/constants/queryKeys';
 import { BOTTOM_NAVIGATION } from '@/constants/layout';
 import { BorderRadius, Typography } from '@/constants/theme';
 import { getErrorMessage } from '@/utils/getErrorMessage';
+import { getDisplayCost } from '@/utils/itineraryDisplay';
 import { ItineraryOverviewCard2BeforeEdit } from '@/components/ItineraryOverviewCard2BeforeEdit';
 import { PlanDetailItem } from '@/components/PlanDetailItem';
 
@@ -30,15 +31,6 @@ function formatLogDate(isoDate: string): string {
 function splitTimeRange(time: string): { startTime: string; endTime: string } {
   const [startTime, endTime = ''] = time.split('~').map((part) => part.trim());
   return { startTime, endTime };
-}
-
-function getDisplayCost(cost?: DayPlanCost | null, legacyPrice?: number | null) {
-  if (cost) {
-    if (cost.amount_krw != null) return { price: cost.amount_krw, currency: 'KRW' };
-    return { price: cost.amount, currency: cost.currency };
-  }
-
-  return legacyPrice == null ? {} : { price: legacyPrice, currency: 'KRW' };
 }
 
 export function PlanListDetailScreen({ id }: Props) {

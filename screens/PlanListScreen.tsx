@@ -103,8 +103,11 @@ export function PlanListScreen() {
   const statusMutation = useMutation({
     mutationFn: ({ itineraryId, status }: { itineraryId: string; status: 'draft' | 'completed' }) =>
       authRequest((token) => updateItineraryStatus(token, itineraryId, { status })),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.itineraries.all });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.itineraries.detail(variables.itineraryId),
+      });
     },
     onError: (e) => {
       Toast.show({ type: 'error', text1: getErrorMessage(e) });
