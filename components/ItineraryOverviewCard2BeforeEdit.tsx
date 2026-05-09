@@ -18,6 +18,7 @@ type Props = {
   onEdit?: () => void;
   changeLogs?: { logId: string; date: string }[];
   onChangeLogPress?: (logId: string) => void;
+  changeLogDate?: string;
   hidden?: boolean;
 };
 
@@ -32,6 +33,7 @@ export function ItineraryOverviewCard2BeforeEdit({
   onEdit,
   changeLogs = [],
   onChangeLogPress,
+  changeLogDate,
   hidden = false,
 }: Props) {
   const { colors, scheme } = useTheme();
@@ -84,7 +86,7 @@ export function ItineraryOverviewCard2BeforeEdit({
     outputRange: ['0deg', '180deg'],
   });
 
-  const showEdit = !!onEdit && !isExpanded;
+  const showEdit = !!onEdit && !isExpanded && !changeLogDate;
   const activeTabText = scheme === 'dark' ? colors.textTitle : colors.cardBg;
 
   if (hidden) return null;
@@ -161,6 +163,11 @@ export function ItineraryOverviewCard2BeforeEdit({
       <Text style={[styles.subtitle, { color: colors.textCaption }]}>
         {date} • {location}
       </Text>
+      {changeLogDate ? (
+        <Text style={[styles.changeLogNotice, { color: colors.warning }]}>
+          {changeLogDate} 변경 이력 조회 중
+        </Text>
+      ) : null}
 
       {/* Collapsed: Day tabs / Expanded: change log list */}
       {isExpanded ? (
@@ -338,6 +345,10 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     ...Typography['body-lg'],
+    paddingHorizontal: 16,
+  },
+  changeLogNotice: {
+    ...Typography['heading-sm'],
     paddingHorizontal: 16,
   },
   tabRow: {

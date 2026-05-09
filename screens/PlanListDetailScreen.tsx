@@ -26,6 +26,11 @@ function formatLogDate(isoDate: string): string {
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
 }
 
+function splitTimeRange(time: string): { startTime: string; endTime: string } {
+  const [startTime, endTime = ''] = time.split('~').map((part) => part.trim());
+  return { startTime, endTime };
+}
+
 export function PlanListDetailScreen({ id }: Props) {
   const { colors } = useTheme();
   const { authRequest } = useApi();
@@ -129,18 +134,21 @@ export function PlanListDetailScreen({ id }: Props) {
           { paddingBottom: BOTTOM_NAVIGATION + insets.bottom + 24 },
         ]}
       >
-        {activeDayPlans.map((item, index) => (
-          <PlanDetailItem
-            key={`day${selectedDay}-item${index}`}
-            title={item.plan_name}
-            startTime={item.time}
-            endTime={index + 1 < activeDayPlans.length ? activeDayPlans[index + 1].time : ''}
-            memo={item.note || undefined}
-            location={item.place || undefined}
-            price={item.price ?? undefined}
-            showConnector={index + 1 < activeDayPlans.length}
-          />
-        ))}
+        {activeDayPlans.map((item, index) => {
+          const { startTime, endTime } = splitTimeRange(item.time);
+          return (
+            <PlanDetailItem
+              key={`day${selectedDay}-item${index}`}
+              title={item.plan_name}
+              startTime={startTime}
+              endTime={endTime}
+              memo={item.note || undefined}
+              location={item.place || undefined}
+              price={item.price ?? undefined}
+              showConnector={index + 1 < activeDayPlans.length}
+            />
+          );
+        })}
       </ScrollView>
     </View>
   );
