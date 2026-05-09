@@ -121,6 +121,7 @@ export function ChatRoomScreen({ chatId }: Props) {
   const [thinkingDotCount, setThinkingDotCount] = useState(1);
   const [selectedChatId, setSelectedChatId] = useState(chatId);
   const deletedChatIdsRef = useRef(new Set<string>());
+  const pendingDrawerActionRef = useRef<(() => void) | null>(null);
 
   const { data: roomData, error: roomError } = useQuery({
     queryKey: queryKeys.chatRooms.detail(chatId),
@@ -463,6 +464,11 @@ export function ChatRoomScreen({ chatId }: Props) {
     setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated }), 250);
   }, []);
 
+  const closeDrawerThen = (action?: () => void) => {
+    pendingDrawerActionRef.current = action ?? null;
+    setDrawerVisible(false);
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: colors.pageBg }]}>
       <ChatHeader
@@ -526,45 +532,47 @@ export function ChatRoomScreen({ chatId }: Props) {
         chats={chatRooms.map((room) => ({ id: room.roomId, title: room.name }))}
         activeChatId={chatId}
         onClose={() => setDrawerVisible(false)}
+        onAfterClose={() => {
+          const action = pendingDrawerActionRef.current;
+          pendingDrawerActionRef.current = null;
+          action?.();
+        }}
         onNewChat={() => {
-          setDrawerVisible(false);
-          setTimeout(() => {
+          closeDrawerThen(() => {
             router.navigate({ pathname: '/chat', params: { mode: 'new' } });
-          }, 250);
+          });
         }}
         onChatPress={(id) => {
-          setDrawerVisible(false);
-          if (String(id) !== chatId) {
-            router.replace({ pathname: '/chat/[chatId]', params: { chatId: String(id) } });
-          }
+          closeDrawerThen(() => {
+            if (String(id) !== chatId) {
+              router.replace({ pathname: '/chat/[chatId]', params: { chatId: String(id) } });
+            }
+          });
         }}
         onChatRename={(id) => {
           setSelectedChatId(String(id));
-          setDrawerVisible(false);
-          // iOS Modal 닫힘 애니메이션 완료 후 다음 Modal 열기
-          setTimeout(() => setRenameModalVisible(true), 250);
+          closeDrawerThen(() => setRenameModalVisible(true));
         }}
         onChatEditInfo={(id) => {
           setSelectedChatId(String(id));
-          setDrawerVisible(false);
-          setTimeout(() => setEditTripInfoVisible(true), 250);
+          closeDrawerThen(() => setEditTripInfoVisible(true));
         }}
         onChatViewPlan={(id) => {
-          setDrawerVisible(false);
+          closeDrawerThen(() => {
           // 캐시에서 itineraryId 조회 후 해당 일정으로 이동
-          const cached = queryClient.getQueryData<{ itineraryId?: string }>(
-            queryKeys.chatRooms.detail(String(id)),
-          );
-          if (cached?.itineraryId) {
-            router.push({ pathname: '/plan-list/[id]', params: { id: cached.itineraryId } });
-          } else {
-            router.navigate('/plan-list');
-          }
+            const cached = queryClient.getQueryData<{ itineraryId?: string }>(
+              queryKeys.chatRooms.detail(String(id)),
+            );
+            if (cached?.itineraryId) {
+              router.push({ pathname: '/plan-list/[id]', params: { id: cached.itineraryId } });
+            } else {
+              router.navigate('/plan-list');
+            }
+          });
         }}
         onChatDelete={(id) => {
           setSelectedChatId(String(id));
-          setDrawerVisible(false);
-          setTimeout(() => setDeleteAlertVisible(true), 250);
+          closeDrawerThen(() => setDeleteAlertVisible(true));
         }}
       />
 

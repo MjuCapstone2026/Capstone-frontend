@@ -31,6 +31,7 @@ type Props = {
   chats: ChatItem[];
   activeChatId?: string | number;
   onClose: () => void;
+  onAfterClose?: () => void;
   onNewChat: () => void;
   onChatPress: (id: string | number) => void;
   onChatRename: (id: string | number) => void;
@@ -44,6 +45,7 @@ export function NavigationDrawer({
   chats,
   activeChatId,
   onClose,
+  onAfterClose,
   onNewChat,
   onChatPress,
   onChatRename,
@@ -57,11 +59,15 @@ export function NavigationDrawer({
   const drawerWidth = Math.min(screenWidth * 0.85, 340);
 
   const slideAnim = useRef(new Animated.Value(-drawerWidth)).current;
+  const onAfterCloseRef = useRef(onAfterClose);
+  const hasPresentedRef = useRef(false);
   const [mounted, setMounted] = useState(false);
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
 
   const itemRefs = useRef(new Map<string | number, View | null>());
   const scaleAnims = useRef(new Map<string | number, Animated.Value>());
+
+  onAfterCloseRef.current = onAfterClose;
 
   const getScaleAnim = (id: string | number): Animated.Value => {
     if (!scaleAnims.current.has(id)) {
@@ -72,19 +78,25 @@ export function NavigationDrawer({
 
   useEffect(() => {
     if (visible) {
+      hasPresentedRef.current = true;
       setMounted(true);
       Animated.timing(slideAnim, {
         toValue: 0,
         duration: 250,
         useNativeDriver: true,
       }).start();
-    } else {
+    } else if (hasPresentedRef.current) {
       setContextMenu(null);
       Animated.timing(slideAnim, {
         toValue: -drawerWidth,
         duration: 200,
         useNativeDriver: true,
-      }).start(() => setMounted(false));
+      }).start(({ finished }) => {
+        if (!finished) return;
+        hasPresentedRef.current = false;
+        setMounted(false);
+        onAfterCloseRef.current?.();
+      });
     }
   }, [visible, drawerWidth, slideAnim]);
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -33,6 +33,7 @@ export function NewChatScreen() {
   const [renameModalVisible, setRenameModalVisible] = useState(false);
   const [deleteAlertVisible, setDeleteAlertVisible] = useState(false);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const pendingDrawerActionRef = useRef<(() => void) | null>(null);
 
   const { data: chatRoomsData, error: chatRoomsError } = useQuery({
     queryKey: queryKeys.chatRooms.all,
@@ -178,6 +179,11 @@ export function NewChatScreen() {
     deleteMutation.mutate(roomId);
   };
 
+  const closeDrawerThen = (action?: () => void) => {
+    pendingDrawerActionRef.current = action ?? null;
+    setDrawerVisible(false);
+  };
+
   const chatRooms = chatRoomsData?.rooms ?? [];
   const selectedChatName = chatRooms.find((r) => r.roomId === selectedChatId)?.name ?? '';
 
@@ -196,42 +202,43 @@ export function NewChatScreen() {
         visible={drawerVisible}
         chats={chatRooms.map((room) => ({ id: room.roomId, title: room.name }))}
         onClose={() => setDrawerVisible(false)}
+        onAfterClose={() => {
+          const action = pendingDrawerActionRef.current;
+          pendingDrawerActionRef.current = null;
+          action?.();
+        }}
         onNewChat={() => {
-          setDrawerVisible(false);
-          // iOS는 Modal 닫힘 애니메이션(200ms) 중 새 Modal 열기를 무시하므로 대기 후 오픈.
-          setTimeout(() => setTripSheetVisible(true), 250);
+          closeDrawerThen(() => setTripSheetVisible(true));
         }}
         onChatPress={(chatId) => {
-          setDrawerVisible(false);
-          router.replace({ pathname: '/chat/[chatId]', params: { chatId: String(chatId) } });
+          closeDrawerThen(() => {
+            router.replace({ pathname: '/chat/[chatId]', params: { chatId: String(chatId) } });
+          });
         }}
         onChatRename={(chatId) => {
           setSelectedChatId(String(chatId));
-          setDrawerVisible(false);
-          // iOS Modal 닫힘 애니메이션 완료 후 다음 Modal 열기
-          setTimeout(() => setRenameModalVisible(true), 250);
+          closeDrawerThen(() => setRenameModalVisible(true));
         }}
         onChatEditInfo={(chatId) => {
           setSelectedChatId(String(chatId));
-          setDrawerVisible(false);
-          setTimeout(() => setEditTripInfoVisible(true), 250);
+          closeDrawerThen(() => setEditTripInfoVisible(true));
         }}
         onChatViewPlan={(chatId) => {
-          setDrawerVisible(false);
+          closeDrawerThen(() => {
           // 캐시에서 itineraryId 조회 후 해당 일정으로 이동
-          const cached = queryClient.getQueryData<{ itineraryId?: string }>(
-            queryKeys.chatRooms.detail(String(chatId)),
-          );
-          if (cached?.itineraryId) {
-            router.push({ pathname: '/plan-list/[id]', params: { id: cached.itineraryId } });
-          } else {
-            router.navigate('/plan-list');
-          }
+            const cached = queryClient.getQueryData<{ itineraryId?: string }>(
+              queryKeys.chatRooms.detail(String(chatId)),
+            );
+            if (cached?.itineraryId) {
+              router.push({ pathname: '/plan-list/[id]', params: { id: cached.itineraryId } });
+            } else {
+              router.navigate('/plan-list');
+            }
+          });
         }}
         onChatDelete={(chatId) => {
           setSelectedChatId(String(chatId));
-          setDrawerVisible(false);
-          setTimeout(() => setDeleteAlertVisible(true), 250);
+          closeDrawerThen(() => setDeleteAlertVisible(true));
         }}
       />
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { StyleSheet, View, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -71,6 +71,7 @@ export function HomeScreen() {
   const [editTripInfoVisible, setEditTripInfoVisible] = useState(false);
   const [deleteAlertVisible, setDeleteAlertVisible] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const pendingDrawerActionRef = useRef<(() => void) | null>(null);
 
   const { colors } = useTheme();
   const { authRequest } = useApi();
@@ -211,7 +212,6 @@ export function HomeScreen() {
   });
 
   const handleViewPlan = async (chatId: string | number) => {
-    setDrawerVisible(false);
     try {
       const room = await queryClient.fetchQuery({
         queryKey: queryKeys.chatRooms.detail(String(chatId)),
@@ -229,6 +229,11 @@ export function HomeScreen() {
       Toast.show({ type: 'error', text1: getErrorMessage(error) });
       router.navigate('/plan-list');
     }
+  };
+
+  const closeDrawerThen = (action?: () => void) => {
+    pendingDrawerActionRef.current = action ?? null;
+    setDrawerVisible(false);
   };
 
   return (
@@ -263,31 +268,37 @@ export function HomeScreen() {
         visible={drawerVisible}
         chats={allChats}
         onClose={() => setDrawerVisible(false)}
+        onAfterClose={() => {
+          const action = pendingDrawerActionRef.current;
+          pendingDrawerActionRef.current = null;
+          action?.();
+        }}
         onNewChat={() => {
-          setDrawerVisible(false);
-          setTimeout(() => {
+          closeDrawerThen(() => {
             router.navigate({ pathname: '/chat', params: { mode: 'new' } });
-          }, 250);
+          });
         }}
         onChatPress={(id) => {
-          setDrawerVisible(false);
-          router.navigate({ pathname: '/chat/[chatId]', params: { chatId: String(id) } });
+          closeDrawerThen(() => {
+            router.navigate({ pathname: '/chat/[chatId]', params: { chatId: String(id) } });
+          });
         }}
         onChatRename={(id) => {
           setSelectedChatId(String(id));
-          setDrawerVisible(false);
-          setTimeout(() => setRenameModalVisible(true), 250);
+          closeDrawerThen(() => setRenameModalVisible(true));
         }}
         onChatEditInfo={(id) => {
           setSelectedChatId(String(id));
-          setDrawerVisible(false);
-          setTimeout(() => setEditTripInfoVisible(true), 250);
+          closeDrawerThen(() => setEditTripInfoVisible(true));
         }}
-        onChatViewPlan={handleViewPlan}
+        onChatViewPlan={(id) => {
+          closeDrawerThen(() => {
+            void handleViewPlan(id);
+          });
+        }}
         onChatDelete={(id) => {
           setSelectedChatId(String(id));
-          setDrawerVisible(false);
-          setTimeout(() => setDeleteAlertVisible(true), 250);
+          closeDrawerThen(() => setDeleteAlertVisible(true));
         }}
       />
 
