@@ -25,7 +25,7 @@ type DayPlanItem = {
   price?: number | null;
 };
 
-type ItineraryDetail = {
+export type ItineraryDetail = {
   itineraryId: string;
   name: string;
   status: 'draft' | 'completed';
