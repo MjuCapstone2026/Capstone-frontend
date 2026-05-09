@@ -16,9 +16,10 @@ type Props = {
   onDayPress: (day: number) => void;
   onBack: () => void;
   onEdit?: () => void;
-  changeLogs?: string[];
-  onChangeLogPress?: (date: string | undefined) => void;
+  changeLogs?: { logId: string; date: string }[];
+  onChangeLogPress?: (logId: string) => void;
   changeLogDate?: string;
+  hidden?: boolean;
 };
 
 export function ItineraryOverviewCard2BeforeEdit({
@@ -33,15 +34,18 @@ export function ItineraryOverviewCard2BeforeEdit({
   changeLogs = [],
   onChangeLogPress,
   changeLogDate,
+  hidden = false,
 }: Props) {
   const { colors, scheme } = useTheme();
   const insets = useSafeAreaInsets();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [measuredHeight, setMeasuredHeight] = useState(0);
   const [showLogTopFade, setShowLogTopFade] = useState(false);
   const [showLogBottomFade, setShowLogBottomFade] = useState(true);
   const [showDayLeftFade, setShowDayLeftFade] = useState(false);
   const [showDayRightFade, setShowDayRightFade] = useState(true);
   const chevronAnim = useRef(new Animated.Value(0)).current;
+  const hiddenAnim = useRef(new Animated.Value(hidden ? 1 : 0)).current;
   const dayScrollRef = useRef<ScrollView>(null);
   const logScrollRef = useRef<ScrollView>(null);
   const dayScrollXRef = useRef(0);
@@ -87,12 +91,47 @@ export function ItineraryOverviewCard2BeforeEdit({
   const showEdit = !!onEdit && !isExpanded && !changeLogDate;
   const activeTabText = scheme === 'dark' ? colors.textTitle : colors.cardBg;
 
+  useEffect(() => {
+    Animated.timing(hiddenAnim, {
+      toValue: hidden ? 1 : 0,
+      duration: 180,
+      useNativeDriver: false,
+    }).start();
+  }, [hidden, hiddenAnim]);
+
+  const headerAnimatedStyle = {
+    marginBottom: hiddenAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0, -measuredHeight],
+    }),
+    opacity: hiddenAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: [1, 0],
+    }),
+    transform: [
+      {
+        translateY: hiddenAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0, -measuredHeight],
+        }),
+      },
+    ],
+  };
+
   return (
-    <View
+    <Animated.View
+      pointerEvents={hidden ? 'none' : 'auto'}
+      onLayout={({ nativeEvent }) => {
+        const nextHeight = nativeEvent.layout.height;
+        if (nextHeight > 0 && Math.abs(nextHeight - measuredHeight) > 1) {
+          setMeasuredHeight(nextHeight);
+        }
+      }}
       style={[
         styles.container,
+        headerAnimatedStyle,
         {
-          paddingTop: 12 + insets.top,
+          paddingTop: 6 + insets.top,
           backgroundColor: colors.cardBg,
           borderBottomColor: colors.divider,
         },
@@ -106,10 +145,6 @@ export function ItineraryOverviewCard2BeforeEdit({
             if (isExpanded) {
               logScrollYRef.current = 0;
               toggleExpanded();
-              onChangeLogPress?.(undefined);
-            } else if (changeLogDate) {
-              logScrollYRef.current = 0;
-              onChangeLogPress?.(undefined);
             } else {
               onBack();
             }
@@ -161,8 +196,13 @@ export function ItineraryOverviewCard2BeforeEdit({
 
       {/* Date / location */}
       <Text style={[styles.subtitle, { color: colors.textCaption }]}>
-        {changeLogDate ? `${changeLogDate} • 변경 이력 조회 중` : `${date} • ${location}`}
+        {date} • {location}
       </Text>
+      {changeLogDate ? (
+        <Text style={[styles.changeLogNotice, { color: colors.warning }]}>
+          {changeLogDate} 변경 이력 조회 중
+        </Text>
+      ) : null}
 
       {/* Collapsed: Day tabs / Expanded: change log list */}
       {isExpanded ? (
@@ -186,23 +226,21 @@ export function ItineraryOverviewCard2BeforeEdit({
                   setShowLogBottomFade(contentOffset.y + layoutMeasurement.height < contentSize.height - 1);
                 }}
               >
-                {changeLogs.map(logDate => {
-                  const isActive = logDate === changeLogDate;
+                {changeLogs.map(({ logId, date: logDate }) => {
                   return (
                     <Pressable
-                      key={logDate}
+                      key={logId}
                       onPress={() => {
-                        onChangeLogPress?.(logDate);
-                        toggleExpanded();
+                        onChangeLogPress?.(logId);
                       }}
                       style={[
                         styles.changeLogItem,
-                        { backgroundColor: isActive ? colors.primary : colors.secondarySurface },
+                        { backgroundColor: colors.secondarySurface },
                       ]}
                     >
                       {({ pressed }) => (
                         <>
-                          <Text style={[styles.changeLogDate, { color: isActive ? activeTabText : colors.textCaption }]}>
+                          <Text style={[styles.changeLogDate, { color: colors.textCaption }]}>
                             {logDate}
                           </Text>
                           {pressed && (
@@ -236,6 +274,8 @@ export function ItineraryOverviewCard2BeforeEdit({
           )}
         </View>
       ) : (
+        <>
+          <View style={[styles.sectionDivider, { backgroundColor: colors.divider }]} />
         <View style={styles.tabScrollWrapper}>
           <ScrollView
             ref={dayScrollRef}
@@ -294,15 +334,16 @@ export function ItineraryOverviewCard2BeforeEdit({
             />
           )}
         </View>
+        </>
       )}
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     borderBottomWidth: 1,
-    paddingBottom: 24,
+    paddingBottom: 8,
     paddingHorizontal: 12,
     gap: 8,
   },
@@ -311,7 +352,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 12,
   },
   textButton: {
     flexDirection: 'row',
@@ -332,6 +372,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     gap: 8,
+    marginTop: 12,
   },
   title: {
     ...Typography['heading-xl'],
@@ -340,10 +381,19 @@ const styles = StyleSheet.create({
     ...Typography['body-lg'],
     paddingHorizontal: 16,
   },
+  changeLogNotice: {
+    ...Typography['heading-sm'],
+    paddingHorizontal: 16,
+  },
   tabRow: {
     flexDirection: 'row',
     gap: 8,
     paddingHorizontal: 16,
+  },
+  sectionDivider: {
+    height: 1,
+    marginHorizontal: 16,
+    marginTop: 16,
   },
   tab: {
     borderRadius: BorderRadius.md,
@@ -359,6 +409,7 @@ const styles = StyleSheet.create({
   },
   tabScrollWrapper: {
     position: 'relative',
+    paddingVertical: 8,
   },
   tabFadeLeft: {
     position: 'absolute',
@@ -377,15 +428,16 @@ const styles = StyleSheet.create({
   changeLogSection: {
     gap: 8,
     paddingHorizontal: 16,
+    marginTop: 12,
   },
   changeLogScrollWrapper: {
     position: 'relative',
   },
   changeLogScroll: {
-    maxHeight: 111,
+    maxHeight: 124,
   },
   changeLogScrollContent: {
-    gap: 8,
+    gap: 10,
   },
   changeLogFadeTop: {
     position: 'absolute',
@@ -404,13 +456,14 @@ const styles = StyleSheet.create({
   changeLogEmpty: {
     ...Typography['body-lg'],
     textAlign: 'center',
+    marginBottom: 11,
   },
   changeLogHeader: {
     ...Typography['body-lg'],
   },
   changeLogItem: {
     borderRadius: BorderRadius.md,
-    paddingVertical: 8,
+    paddingVertical: 10,
     paddingHorizontal: 16,
     overflow: 'hidden',
   },

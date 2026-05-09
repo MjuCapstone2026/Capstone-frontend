@@ -288,7 +288,7 @@ export function PlanDetailEditItem({ item, onSave, onDelete }: Props) {
       ]}
     >
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, isOpen && styles.openHeader]}>
         <View style={styles.timeSection}>
           {renderTimeBadge(edit.startTime, displayStartTime, (v) => updateEdit({ startTime: v }))}
           <Text style={[styles.timeSeparator, { color: colors.primary }]}>~</Text>
@@ -448,14 +448,17 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    paddingVertical: 12,
+    paddingVertical: 16,
     paddingHorizontal: 16,
-    gap: 8,
+    gap: 10,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  openHeader: {
+    marginBottom: 4,
   },
   timeSection: {
     flexDirection: 'row',
@@ -465,8 +468,9 @@ const styles = StyleSheet.create({
   timeBadge: {
     borderWidth: 1,
     borderRadius: BorderRadius.sm,
-    paddingVertical: 4,
     paddingHorizontal: 8,
+    height: 28,
+    justifyContent: 'center',
   },
   timeSeparator: {
     ...Typography['caption'],
@@ -478,16 +482,21 @@ const styles = StyleSheet.create({
     fontSize: Typography['caption'].fontSize,
     fontWeight: Typography['caption'].fontWeight,
     letterSpacing: Typography['caption'].letterSpacing,
+    includeFontPadding: false,
     padding: 0,
     minWidth: 36,
+    height: 17,
     textAlign: 'center',
     textAlignVertical: 'center',
   },
   titleWrapper: {
     flex: 1,
+    minHeight: 28,
+    justifyContent: 'center',
   },
   titleText: {
     ...Typography['heading-md'],
+    includeFontPadding: false,
   },
   titleInput: {
     ...Typography['heading-md'],
@@ -501,8 +510,9 @@ const styles = StyleSheet.create({
     height: 1,
   },
   expanded: {
-    gap: 8,
+    gap: 10,
     paddingLeft: 12,
+    paddingTop: 2,
   },
   reservationSubtitle: {
     ...Typography['heading-md'],

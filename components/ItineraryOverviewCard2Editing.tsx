@@ -41,7 +41,7 @@ export function ItineraryOverviewCard2Editing({
       style={[
         styles.container,
         {
-          paddingTop: 12 + insets.top,
+          paddingTop: 6 + insets.top,
           backgroundColor: colors.cardBg,
           borderBottomColor: colors.divider,
         },
@@ -96,6 +96,7 @@ export function ItineraryOverviewCard2Editing({
       </Text>
 
       {/* Day tabs */}
+      <View style={[styles.sectionDivider, { backgroundColor: colors.divider }]} />
       <View style={styles.tabScrollWrapper}>
         <ScrollView
           horizontal
@@ -159,7 +160,7 @@ export function ItineraryOverviewCard2Editing({
 const styles = StyleSheet.create({
   container: {
     borderBottomWidth: 1,
-    paddingBottom: 24,
+    paddingBottom: 8,
     paddingHorizontal: 12,
     gap: 8,
   },
@@ -168,7 +169,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 12,
+    // paddingTop: 4,
   },
   actionButtons: {
     flexDirection: 'row',
@@ -191,13 +192,20 @@ const styles = StyleSheet.create({
   title: {
     ...Typography['heading-xl'],
     paddingHorizontal: 16,
+    marginTop: 12,
   },
   subtitle: {
     ...Typography['body-lg'],
     paddingHorizontal: 16,
   },
+  sectionDivider: {
+    height: 1,
+    marginHorizontal: 16,
+    marginTop: 16,
+  },
   tabScrollWrapper: {
     position: 'relative',
+    paddingVertical: 8,
   },
   tabRow: {
     flexDirection: 'row',

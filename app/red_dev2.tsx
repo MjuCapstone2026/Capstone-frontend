@@ -108,7 +108,6 @@ function RedDev2Content() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [selectedDay, setSelectedDay] = useState(1);
-  const [changeLogDate, setChangeLogDate] = useState<string | undefined>(undefined);
   const [editingDay, setEditingDay] = useState(1);
   const [scheduleItems, setScheduleItems] = useState<ScheduleItem[]>(INITIAL_ITEMS);
 
@@ -149,9 +148,13 @@ function RedDev2Content() {
               onDayPress={setSelectedDay}
               onBack={() => { }}
               onEdit={() => { }}
-              changeLogs={['2026-05-09', '2026-05-02', '2026-04-27', '2026-04-26']}
-              changeLogDate={changeLogDate}
-              onChangeLogPress={setChangeLogDate}
+              changeLogs={[
+                { logId: 'log-1', date: '2026-05-09' },
+                { logId: 'log-2', date: '2026-05-02' },
+                { logId: 'log-3', date: '2026-04-27' },
+                { logId: 'log-4', date: '2026-04-26' },
+              ]}
+              onChangeLogPress={() => { }}
             />
           </Section>
           <Section title='ItineraryOverviewCard2Editing'>
