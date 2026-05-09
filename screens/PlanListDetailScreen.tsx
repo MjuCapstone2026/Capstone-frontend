@@ -1,14 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import { useApi } from '@/hooks/useApi';
 import { useTheme } from '@/hooks/useTheme';
-import { getItinerary, getItineraryLogs } from '@/api/itineraries';
+import { DayPlanCost, getItinerary, getItineraryLogs } from '@/api/itineraries';
 import { GC_TIMES, queryKeys, STALE_TIMES } from '@/constants/queryKeys';
 import { BOTTOM_NAVIGATION } from '@/constants/layout';
+import { BorderRadius, Typography } from '@/constants/theme';
 import { getErrorMessage } from '@/utils/getErrorMessage';
 import { ItineraryOverviewCard2BeforeEdit } from '@/components/ItineraryOverviewCard2BeforeEdit';
 import { PlanDetailItem } from '@/components/PlanDetailItem';
@@ -31,6 +32,15 @@ function splitTimeRange(time: string): { startTime: string; endTime: string } {
   return { startTime, endTime };
 }
 
+function getDisplayCost(cost?: DayPlanCost | null, legacyPrice?: number | null) {
+  if (cost) {
+    if (cost.amount_krw != null) return { price: cost.amount_krw, currency: 'KRW' };
+    return { price: cost.amount, currency: cost.currency };
+  }
+
+  return legacyPrice == null ? {} : { price: legacyPrice, currency: 'KRW' };
+}
+
 export function PlanListDetailScreen({ id }: Props) {
   const { colors } = useTheme();
   const { authRequest } = useApi();
@@ -38,8 +48,6 @@ export function PlanListDetailScreen({ id }: Props) {
   const insets = useSafeAreaInsets();
 
   const [selectedDay, setSelectedDay] = useState(1);
-  const [isHeaderHidden, setIsHeaderHidden] = useState(false);
-  const lastScrollYRef = useRef(0);
 
   const {
     data: itinerary,
@@ -96,7 +104,7 @@ export function PlanListDetailScreen({ id }: Props) {
   const headerDate = `${itinerary.startDate.replace(/-/g, '.')} - ${itinerary.endDate.replace(/-/g, '.')}`;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.secondarySurface }]}>
+    <View style={[styles.container, { backgroundColor: colors.pageBg }]}>
       <ItineraryOverviewCard2BeforeEdit
         title={itinerary.name}
         date={headerDate}
@@ -110,45 +118,35 @@ export function PlanListDetailScreen({ id }: Props) {
         onChangeLogPress={(logId) =>
           router.push({ pathname: '/plan-list/[id]/logs/[logId]', params: { id, logId } })
         }
-        hidden={isHeaderHidden}
       />
       <ScrollView
-        onScroll={({ nativeEvent }) => {
-          const nextY = nativeEvent.contentOffset.y;
-          const previousY = lastScrollYRef.current;
-          const delta = nextY - previousY;
-
-          if (nextY <= 0) {
-            setIsHeaderHidden(false);
-          } else if (delta > 8) {
-            setIsHeaderHidden(true);
-          } else if (delta < -8) {
-            setIsHeaderHidden(false);
-          }
-
-          lastScrollYRef.current = nextY;
-        }}
-        scrollEventThrottle={16}
         contentContainerStyle={[
           styles.content,
           { paddingBottom: BOTTOM_NAVIGATION + insets.bottom + 24 },
         ]}
       >
-        {activeDayPlans.map((item, index) => {
-          const { startTime, endTime } = splitTimeRange(item.time);
-          return (
-            <PlanDetailItem
-              key={`day${selectedDay}-item${index}`}
-              title={item.plan_name}
-              startTime={startTime}
-              endTime={endTime}
-              memo={item.note || undefined}
-              location={item.place || undefined}
-              price={item.price ?? undefined}
-              showConnector={index + 1 < activeDayPlans.length}
-            />
-          );
-        })}
+        <View style={[styles.detailPanel, { backgroundColor: colors.secondarySurface, borderColor: colors.divider }]}>
+          <Text style={[styles.detailTitle, { color: colors.textTitle }]}>일정 상세</Text>
+          <View style={styles.detailList}>
+            {activeDayPlans.map((item, index) => {
+              const { startTime, endTime } = splitTimeRange(item.time);
+              const { price, currency } = getDisplayCost(item.cost, item.price);
+              return (
+                <PlanDetailItem
+                  key={`day${selectedDay}-item${index}`}
+                  title={item.plan_name}
+                  startTime={startTime}
+                  endTime={endTime}
+                  memo={item.note || undefined}
+                  location={item.place || undefined}
+                  price={price}
+                  currency={currency}
+                  showConnector={index + 1 < activeDayPlans.length}
+                />
+              );
+            })}
+          </View>
+        </View>
       </ScrollView>
     </View>
   );
@@ -157,5 +155,22 @@ export function PlanListDetailScreen({ id }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { alignItems: 'center', justifyContent: 'center' },
-  content: { padding: 16 },
+  content: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+  detailPanel: {
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 24,
+    gap: 24,
+  },
+  detailTitle: {
+    ...Typography['heading-md'],
+  },
+  detailList: {
+    gap: 12,
+  },
 });

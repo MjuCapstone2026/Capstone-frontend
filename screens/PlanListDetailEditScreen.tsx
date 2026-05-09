@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
@@ -9,6 +9,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { getItinerary, updateDayPlans } from '@/api/itineraries';
 import { GC_TIMES, queryKeys, STALE_TIMES } from '@/constants/queryKeys';
 import { BOTTOM_NAVIGATION } from '@/constants/layout';
+import { BorderRadius, Typography } from '@/constants/theme';
 import { getErrorMessage } from '@/utils/getErrorMessage';
 import { ItineraryOverviewCard2Editing } from '@/components/ItineraryOverviewCard2Editing';
 import { PlanDetailEditItem, ScheduleItem } from '@/components/PlanDetailEditItem';
@@ -209,14 +210,19 @@ export function PlanListDetailEditScreen({ id }: Props) {
         ]}
         keyboardShouldPersistTaps="handled"
       >
-        {currentItems.map((item) => (
-          <PlanDetailEditItem
-            key={item.id}
-            item={item}
-            onSave={handleSave}
-            onDelete={() => handleDelete(item.id)}
-          />
-        ))}
+        <View style={[styles.detailPanel, { backgroundColor: colors.secondarySurface, borderColor: colors.divider }]}>
+          <Text style={[styles.detailTitle, { color: colors.textTitle }]}>일정 상세</Text>
+          <View style={styles.detailList}>
+            {currentItems.map((item) => (
+              <PlanDetailEditItem
+                key={item.id}
+                item={item}
+                onSave={handleSave}
+                onDelete={() => handleDelete(item.id)}
+              />
+            ))}
+          </View>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -225,5 +231,22 @@ export function PlanListDetailEditScreen({ id }: Props) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   center: { alignItems: 'center', justifyContent: 'center' },
-  content: { padding: 16, gap: 12 },
+  content: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+  detailPanel: {
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 24,
+    gap: 24,
+  },
+  detailTitle: {
+    ...Typography['heading-md'],
+  },
+  detailList: {
+    gap: 12,
+  },
 });
