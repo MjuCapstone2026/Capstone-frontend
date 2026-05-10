@@ -96,7 +96,7 @@ export function PlanScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.itineraries.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.itineraries.all, exact: true });
     }, [queryClient]),
   );
 
@@ -108,7 +108,7 @@ export function PlanScreen() {
       midnight.setDate(midnight.getDate() + 1);
       midnight.setHours(0, 0, 0, 0);
       timerId = setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: queryKeys.itineraries.all });
+        queryClient.invalidateQueries({ queryKey: queryKeys.itineraries.all, exact: true });
         scheduleNext();
       }, midnight.getTime() - now.getTime());
     };
@@ -252,15 +252,13 @@ export function PlanScreen() {
           showsVerticalScrollIndicator={false}
         >
           {currentItem && currentItemTime && (
-            <View style={styles.currentCardContainer}>
-              <CurrentScheduleCard
-                title={currentItem.plan_name}
-                startTime={currentItemTime.startTime}
-                endTime={currentItemTime.endTime}
-                location={currentItem.place}
-                label={currentItemLabel}
-              />
-            </View>
+            <CurrentScheduleCard
+              title={currentItem.plan_name}
+              startTime={currentItemTime.startTime}
+              endTime={currentItemTime.endTime}
+              location={currentItem.place}
+              label={currentItemLabel}
+            />
           )}
           {selectedItems.length === 0 ? (
             <Text style={[styles.emptyDay, { color: colors.textCaption }]}>
@@ -312,10 +310,6 @@ const styles = StyleSheet.create({
     ...Typography['body-md'],
     textAlign: 'center',
     marginBottom: 16,
-  },
-  currentCardContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
   },
   scheduleList: {
     flex: 1,
