@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Text, ScrollView, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/hooks/useTheme';
 import { Typography, BorderRadius, Elevation } from '@/constants/theme';
 
@@ -28,6 +29,7 @@ export function ItineraryOverviewCard({
   totalCount,
 }: Props) {
   const { colors, scheme } = useTheme();
+  const insets = useSafeAreaInsets();
   const [showLeftFade, setShowLeftFade] = useState(false);
   const [showRightFade, setShowRightFade] = useState(true);
 
@@ -37,7 +39,7 @@ export function ItineraryOverviewCard({
   const progressPct = totalCount > 0 ? completedCount / totalCount : 0;
 
   return (
-    <View style={[styles.card, { backgroundColor: bgColor }, Elevation[scheme][1]]}>
+    <View style={[styles.card, { backgroundColor: bgColor, paddingTop: 24 + insets.top }, Elevation[scheme][1]]}>
       <Text style={[styles.title, { color: contentColor }]} numberOfLines={1}>
         {title}
       </Text>
@@ -127,7 +129,8 @@ export function ItineraryOverviewCard({
 
 const styles = StyleSheet.create({
   card: {
-    paddingVertical: 24,
+    paddingTop: 24,
+    paddingBottom: 24,
     paddingHorizontal: 16,
     gap: 12,
   },
