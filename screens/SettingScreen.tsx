@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/hooks/useTheme';
 import { Alert } from '@/components/ui/Alert';
 import { Typography, BorderRadius } from '@/constants/theme';
+import { AlertMessages } from '@/constants/alerts';
 import { BOTTOM_NAVIGATION } from '@/constants/layout';
 import IcNotification from '@/assets/icons/ic_notification.svg';
 import IcPrivacy from '@/assets/icons/ic_privacy.svg';
@@ -179,18 +180,14 @@ export function SettingScreen() {
 
       <Alert
         visible={logoutAlertVisible}
-        title="로그아웃"
-        message="정말 로그아웃하시겠어요?"
-        confirmLabel="로그아웃"
+        {...AlertMessages.logout}
         onConfirm={handleLogoutConfirm}
         onCancel={() => setLogoutAlertVisible(false)}
       />
 
       <Alert
         visible={deleteAlertVisible}
-        title="회원탈퇴"
-        message="탈퇴하면 모든 데이터가 삭제되며 복구할 수 없어요."
-        confirmLabel="탈퇴하기"
+        {...AlertMessages.deleteAccount}
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeleteAlertVisible(false)}
       />
