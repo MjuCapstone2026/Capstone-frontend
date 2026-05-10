@@ -15,7 +15,7 @@ type GetItinerariesResponse = {
   itineraries: Itinerary[];
 };
 
-type DayPlanItem = {
+export type DayPlanItem = {
   index: number;
   plan_name: string;
   time: string;
