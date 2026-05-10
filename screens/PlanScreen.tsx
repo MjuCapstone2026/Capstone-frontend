@@ -12,6 +12,7 @@ import { getErrorMessage } from '@/utils/getErrorMessage';
 import { GC_TIMES, queryKeys, STALE_TIMES } from '@/constants/queryKeys';
 import { DayPlanItem, getItineraries, getItinerary, updateItemStatus } from '@/api/itineraries';
 import { ItineraryOverviewCard } from '@/components/ItineraryOverviewCard';
+import { CurrentScheduleCard } from '@/components/CurrentScheduleCard';
 import { DayScheduleItem } from '@/components/DayScheduleItem';
 import { NewTravelGenerateButton } from '@/components/NewTravelGenerateButton';
 import { BOTTOM_NAVIGATION } from '@/constants/layout';
@@ -188,6 +189,10 @@ export function PlanScreen() {
   const completedCount = selectedItems.filter(item => item.status === 'done').length;
   const totalCount = selectedItems.length;
 
+  const isToday = selectedDateKey === formatDateKey(new Date());
+  const currentItem = isToday ? (selectedItems.find(item => item.status !== 'done') ?? null) : null;
+  const currentItemTime = currentItem ? parseTimeRange(currentItem.time) : null;
+
   return (
     <View style={[styles.container, { backgroundColor: colors.pageBg }]}>
       <ItineraryOverviewCard
@@ -213,6 +218,19 @@ export function PlanScreen() {
           © OpenStreetMap contributors
         </Text>
       </View>
+
+      {currentItem && currentItemTime && (
+        <View style={styles.currentCardContainer}>
+          <CurrentScheduleCard
+            title={currentItem.plan_name}
+            startTime={currentItemTime.startTime}
+            endTime={currentItemTime.endTime}
+            location={currentItem.place}
+            lat={0}
+            lng={0}
+          />
+        </View>
+      )}
 
       {detailLoading ? (
         <View style={[styles.center, { flex: 1 }]}>
@@ -289,6 +307,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 4,
     right: 4,
+  },
+  currentCardContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
   },
   scheduleList: {
     flex: 1,
