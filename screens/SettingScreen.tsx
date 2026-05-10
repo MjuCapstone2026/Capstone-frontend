@@ -15,7 +15,6 @@ import { Alert } from '@/components/ui/Alert';
 import { Typography, BorderRadius } from '@/constants/theme';
 import { AlertMessages } from '@/constants/alerts';
 import { BOTTOM_NAVIGATION } from '@/constants/layout';
-import IcNotification from '@/assets/icons/ic_notification.svg';
 import IcPrivacy from '@/assets/icons/ic_privacy.svg';
 import IcLogout from '@/assets/icons/ic_logout.svg';
 import IcUserRemove from '@/assets/icons/ic_user_remove.svg';
@@ -73,27 +72,6 @@ export function SettingScreen() {
           <Text style={[styles.menuText, { color: colors.textTitle }]}>{email}</Text>
           <Text style={[styles.captionText, { color: colors.textCaption }]}>{joinDate}</Text>
         </View>
-
-        {/* 알림 */}
-        <Text style={[styles.sectionLabel, { color: colors.textSub }]}>알림</Text>
-        <Pressable
-          style={[styles.card, { backgroundColor: colors.cardBg, borderColor: colors.divider }]}
-        >
-          {({ pressed }) => (
-            <>
-              <View style={styles.menuRow}>
-                <IcNotification width={20} height={20} color={colors.textCaption} />
-                <Text style={[styles.menuText, { color: colors.textTitle }]}>알림 설정</Text>
-                <View style={styles.chevronRight}>
-                  <IcChevronDown width={20} height={20} color={colors.textCaption} />
-                </View>
-              </View>
-              {pressed && (
-                <View style={[StyleSheet.absoluteFill, styles.cardOverlay, { backgroundColor: colors.pressOverlay }]} />
-              )}
-            </>
-          )}
-        </Pressable>
 
         {/* 개인정보 */}
         <Text style={[styles.sectionLabel, { color: colors.textSub }]}>개인정보</Text>
