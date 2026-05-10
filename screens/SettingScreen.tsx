@@ -7,6 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/hooks/useTheme';
@@ -34,7 +35,6 @@ export function SettingScreen() {
   const [logoutAlertVisible, setLogoutAlertVisible] = useState(false);
   const [deleteAlertVisible, setDeleteAlertVisible] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleLogoutConfirm = async () => {
     if (isSigningOut) return;
@@ -47,15 +47,9 @@ export function SettingScreen() {
     }
   };
 
-  const handleDeleteConfirm = async () => {
-    if (isDeleting) return;
+  const handleDeleteConfirm = () => {
     setDeleteAlertVisible(false);
-    try {
-      setIsDeleting(true);
-      await user?.delete();
-    } finally {
-      setIsDeleting(false);
-    }
+    Toast.show({ type: 'info', text1: '준비 중인 기능이에요', text2: '곧 회원탈퇴 기능을 지원할 예정이에요.' });
   };
 
   const email = user?.emailAddresses[0]?.emailAddress ?? '';
@@ -152,23 +146,18 @@ export function SettingScreen() {
         <Text style={[styles.sectionLabel, { color: colors.textSub }]}>계정</Text>
         <Pressable
           onPress={() => setDeleteAlertVisible(true)}
-          disabled={isDeleting}
           style={[styles.card, { backgroundColor: colors.cardBg, borderColor: colors.divider }]}
         >
           {({ pressed }) => (
             <>
               <View style={styles.menuRow}>
                 <IcUserRemove width={20} height={20} color={colors.danger} />
-                {isDeleting ? (
-                  <ActivityIndicator color={colors.danger} style={styles.menuLoader} />
-                ) : (
-                  <Text style={[styles.menuText, { color: colors.danger }]}>회원탈퇴</Text>
-                )}
+                <Text style={[styles.menuText, { color: colors.danger }]}>회원탈퇴</Text>
                 <View style={styles.chevronRight}>
                   <IcChevronDown width={20} height={20} color={colors.textCaption} />
                 </View>
               </View>
-              {pressed && !isDeleting && (
+              {pressed && (
                 <View style={[StyleSheet.absoluteFill, styles.cardOverlay, { backgroundColor: colors.pressOverlay }]} />
               )}
             </>
@@ -247,10 +236,6 @@ const styles = StyleSheet.create({
   },
   chevronRight: {
     transform: [{ rotate: '-90deg' }],
-  },
-  menuLoader: {
-    flex: 1,
-    alignSelf: 'flex-start',
   },
   versionText: {
     ...Typography['caption'],
