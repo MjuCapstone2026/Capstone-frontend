@@ -11,18 +11,18 @@ type Props = {
   startTime: string;
   endTime: string;
   location: string;
-  lat: number;
-  lng: number;
+  label?: string;
 };
 
-export function CurrentScheduleCard({ title, startTime, endTime, location, lat, lng }: Props) {
+export function CurrentScheduleCard({ title, startTime, endTime, location, label = '현재 일정' }: Props) {
   const { colors, scheme } = useTheme();
 
   const surfaceColor = scheme === 'dark' ? colors.textTitle : colors.cardBg;
 
   const openNavigation = () => {
-    const kakaoUrl = `kakaomap://look?p=${lat},${lng}`;
-    const googleUrl = `https://maps.google.com/?q=${lat},${lng}`;
+    const encoded = encodeURIComponent(location);
+    const kakaoUrl = `kakaomap://search?q=${encoded}`;
+    const googleUrl = `https://maps.google.com/search/?q=${encoded}`;
     Linking.canOpenURL(kakaoUrl).then(supported => {
       Linking.openURL(supported ? kakaoUrl : googleUrl);
     });
@@ -32,7 +32,7 @@ export function CurrentScheduleCard({ title, startTime, endTime, location, lat, 
     <View style={[styles.card, { backgroundColor: colors.primary }, Elevation[scheme][2]]}>
       <View style={styles.label}>
         <IcNavigation width={16} height={16} color={surfaceColor} />
-        <Text style={[styles.labelText, { color: surfaceColor }]}>현재 일정</Text>
+        <Text style={[styles.labelText, { color: surfaceColor }]}>{label}</Text>
       </View>
 
       <Text style={[styles.title, { color: surfaceColor }]} numberOfLines={1}>
