@@ -1,15 +1,15 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import { useTheme } from '@/hooks/useTheme';
 import { useApi } from '@/hooks/useApi';
 import { Typography } from '@/constants/theme';
 import { getErrorMessage } from '@/utils/getErrorMessage';
 import { GC_TIMES, queryKeys, STALE_TIMES } from '@/constants/queryKeys';
-import { DayPlanItem, getItineraries, getItinerary, updateItemStatus } from '@/api/itineraries';
+import { DayPlanItem, ItineraryDetail, getItineraries, getItinerary, updateItemStatus } from '@/api/itineraries';
 import { ItineraryOverviewCard } from '@/components/ItineraryOverviewCard';
 import { CurrentScheduleCard } from '@/components/CurrentScheduleCard';
 import { DayScheduleItem } from '@/components/DayScheduleItem';
@@ -94,12 +94,6 @@ export function PlanScreen() {
 
   const [selectedDayIndex, setSelectedDayIndex] = useState(0);
 
-  useFocusEffect(
-    useCallback(() => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.itineraries.all, exact: true });
-    }, [queryClient]),
-  );
-
   useEffect(() => {
     let timerId: ReturnType<typeof setTimeout>;
     const scheduleNext = () => {
@@ -156,8 +150,25 @@ export function PlanScreen() {
           status: newStatus,
         }),
       ),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.itineraries.detail(activeItinerary!.itineraryId) });
+    onSuccess: (res) => {
+      queryClient.setQueryData(
+        queryKeys.itineraries.detail(res.itineraryId),
+        (old: ItineraryDetail | undefined) => {
+          if (!old) return old;
+          const items = old.dayPlans[res.date];
+          if (!items) return old;
+          return {
+            ...old,
+            updatedAt: res.updatedAt,
+            dayPlans: {
+              ...old.dayPlans,
+              [res.date]: items.map((item) =>
+                item.index === res.index ? { ...item, status: res.status } : item,
+              ),
+            },
+          };
+        },
+      );
     },
     onError: (e: unknown) => {
       Toast.show({ type: 'error', text1: getErrorMessage(e) });
