@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
-import MapView from 'react-native-maps';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -78,6 +77,12 @@ const parseTimeRange = (time: string): { startTime: string; endTime: string } =>
     return { startTime: parts[0]?.trim() ?? time, endTime: parts[1]?.trim() ?? '' };
   }
   return { startTime: time, endTime: '' };
+};
+
+const parseTimeToMinutes = (time: string): number | null => {
+  const match = time.match(/(\d{1,2}):(\d{2})/);
+  if (!match) return null;
+  return parseInt(match[1]!, 10) * 60 + parseInt(match[2]!, 10);
 };
 
 export function PlanScreen() {
@@ -190,7 +195,36 @@ export function PlanScreen() {
   const totalCount = selectedItems.length;
 
   const isToday = selectedDateKey === formatDateKey(new Date());
-  const currentItem = isToday ? (selectedItems.find(item => item.status !== 'done') ?? null) : null;
+  let currentItem: DayPlanItem | null = null;
+  let currentItemLabel = '현재 일정';
+
+  if (isToday) {
+    const nowMinutes = new Date().getHours() * 60 + new Date().getMinutes();
+    const active = selectedItems.find(item => {
+      if (item.status === 'done') return false;
+      const { startTime, endTime } = parseTimeRange(item.time);
+      const start = parseTimeToMinutes(startTime);
+      const end = endTime ? parseTimeToMinutes(endTime) : null;
+      if (start === null) return false;
+      return nowMinutes >= start && (end === null ? nowMinutes <= start + 60 : nowMinutes <= end);
+    });
+    if (active) {
+      currentItem = active;
+    } else {
+      const next = selectedItems
+        .filter(item => item.status !== 'done')
+        .find(item => {
+          const { startTime } = parseTimeRange(item.time);
+          const start = parseTimeToMinutes(startTime);
+          return start !== null && start > nowMinutes;
+        }) ?? null;
+      if (next) {
+        currentItem = next;
+        currentItemLabel = '다음 일정';
+      }
+    }
+  }
+
   const currentItemTime = currentItem ? parseTimeRange(currentItem.time) : null;
 
   return (
@@ -203,34 +237,6 @@ export function PlanScreen() {
         completedCount={completedCount}
         totalCount={totalCount}
       />
-
-      <View style={styles.mapContainer}>
-        <MapView
-          style={styles.map}
-          initialRegion={{
-            latitude: 36.5,
-            longitude: 127.5,
-            latitudeDelta: 5,
-            longitudeDelta: 5,
-          }}
-        />
-        <Text style={[styles.osmAttribution, { color: colors.textCaption }]}>
-          © OpenStreetMap contributors
-        </Text>
-      </View>
-
-      {currentItem && currentItemTime && (
-        <View style={styles.currentCardContainer}>
-          <CurrentScheduleCard
-            title={currentItem.plan_name}
-            startTime={currentItemTime.startTime}
-            endTime={currentItemTime.endTime}
-            location={currentItem.place}
-            lat={0}
-            lng={0}
-          />
-        </View>
-      )}
 
       {detailLoading ? (
         <View style={[styles.center, { flex: 1 }]}>
@@ -245,6 +251,17 @@ export function PlanScreen() {
           ]}
           showsVerticalScrollIndicator={false}
         >
+          {currentItem && currentItemTime && (
+            <View style={styles.currentCardContainer}>
+              <CurrentScheduleCard
+                title={currentItem.plan_name}
+                startTime={currentItemTime.startTime}
+                endTime={currentItemTime.endTime}
+                location={currentItem.place}
+                label={currentItemLabel}
+              />
+            </View>
+          )}
           {selectedItems.length === 0 ? (
             <Text style={[styles.emptyDay, { color: colors.textCaption }]}>
               이 날의 일정이 없어요.
@@ -295,18 +312,6 @@ const styles = StyleSheet.create({
     ...Typography['body-md'],
     textAlign: 'center',
     marginBottom: 16,
-  },
-  mapContainer: {
-    position: 'relative',
-  },
-  map: {
-    height: 200,
-  },
-  osmAttribution: {
-    ...Typography['label'],
-    position: 'absolute',
-    bottom: 4,
-    right: 4,
   },
   currentCardContainer: {
     paddingHorizontal: 16,
