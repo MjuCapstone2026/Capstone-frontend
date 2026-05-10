@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import MapView from 'react-native-maps';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import { useTheme } from '@/hooks/useTheme';
 import { useApi } from '@/hooks/useApi';
@@ -87,6 +87,28 @@ export function PlanScreen() {
   const queryClient = useQueryClient();
 
   const [selectedDayIndex, setSelectedDayIndex] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.itineraries.all });
+    }, [queryClient]),
+  );
+
+  useEffect(() => {
+    let timerId: ReturnType<typeof setTimeout>;
+    const scheduleNext = () => {
+      const now = new Date();
+      const midnight = new Date(now);
+      midnight.setDate(midnight.getDate() + 1);
+      midnight.setHours(0, 0, 0, 0);
+      timerId = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.itineraries.all });
+        scheduleNext();
+      }, midnight.getTime() - now.getTime());
+    };
+    scheduleNext();
+    return () => clearTimeout(timerId);
+  }, [queryClient]);
 
   const { data: listData, isLoading: listLoading, error: listError } = useQuery({
     queryKey: queryKeys.itineraries.all,
