@@ -7,6 +7,7 @@ import Toast from 'react-native-toast-message';
 import { useApi } from '@/hooks/useApi';
 import { useTheme } from '@/hooks/useTheme';
 import { getItineraries, updateItineraryStatus } from '@/api/itineraries';
+import type { ItineraryDetail } from '@/api/itineraries';
 import { getReservations } from '@/api/reservations';
 import { queryKeys, STALE_TIMES } from '@/constants/queryKeys';
 import { BOTTOM_NAVIGATION } from '@/constants/layout';
@@ -100,14 +101,32 @@ export function PlanListScreen() {
     staleTime: STALE_TIMES.reservations.all,
   });
 
+  type ItinerariesData = NonNullable<typeof itinerariesData>;
+
   const statusMutation = useMutation({
     mutationFn: ({ itineraryId, status }: { itineraryId: string; status: 'draft' | 'completed' }) =>
       authRequest((token) => updateItineraryStatus(token, itineraryId, { status })),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.itineraries.all });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.itineraries.detail(variables.itineraryId),
+    onSuccess: (updatedItinerary) => {
+      queryClient.setQueryData<ItinerariesData>(queryKeys.itineraries.all, (previous) => {
+        if (!previous) return previous;
+
+        return {
+          ...previous,
+          itineraries: previous.itineraries.map((itinerary) =>
+            itinerary.itineraryId === updatedItinerary.itineraryId
+              ? { ...itinerary, status: updatedItinerary.status }
+              : itinerary,
+          ),
+        };
       });
+
+      queryClient.setQueryData<ItineraryDetail>(
+        queryKeys.itineraries.detail(updatedItinerary.itineraryId),
+        (previous) =>
+          previous
+            ? { ...previous, status: updatedItinerary.status, updatedAt: updatedItinerary.updatedAt }
+            : previous,
+      );
     },
     onError: (e) => {
       Toast.show({ type: 'error', text1: getErrorMessage(e) });
