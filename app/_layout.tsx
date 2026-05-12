@@ -87,11 +87,6 @@ export default function RootLayout() {
                   {/* 초기 진입 라우팅 */}
                   <Stack.Screen name="index" options={{ headerShown: false }} />
                   <Stack.Screen name="oauth-native-callback" options={{ headerShown: false }} />
-                  {/* 개발용 갤러리 허브 */}
-                  <Stack.Screen name="dev_gallery" options={{ title: 'Dev Gallery' }} />
-                  <Stack.Screen name="red_dev1" options={{ title: 'Red — Components 1' }} />
-                  <Stack.Screen name="red_dev2" options={{ title: 'Red — Components 2' }} />
-                  <Stack.Screen name="blue_dev1" options={{ title: 'Blue — Components 1' }} />
                 </Stack>
                 <StatusBar style="auto" />
                 <Toast />
