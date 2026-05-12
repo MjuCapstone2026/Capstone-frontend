@@ -151,9 +151,9 @@ export function PlanScreen() {
         }),
       ),
     onSuccess: (res) => {
-      queryClient.setQueryData(
+      queryClient.setQueryData<ItineraryDetail>(
         queryKeys.itineraries.detail(res.itineraryId),
-        (old: ItineraryDetail | undefined) => {
+        (old) => {
           if (!old) return old;
           const items = old.dayPlans[res.date];
           if (!items) return old;
