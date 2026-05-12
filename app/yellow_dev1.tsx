@@ -238,7 +238,10 @@ export default function YellowDev1Screen() {
           onClose={() => setDrawerVisible(false)}
           onNewChat={() => setDrawerVisible(false)}
           onChatPress={() => setDrawerVisible(false)}
-          onChatLongPress={() => {}}
+          onChatRename={() => setDrawerVisible(false)}
+          onChatEditInfo={() => setDrawerVisible(false)}
+          onChatViewPlan={() => setDrawerVisible(false)}
+          onChatDelete={() => setDrawerVisible(false)}
         />
       </Section>
 

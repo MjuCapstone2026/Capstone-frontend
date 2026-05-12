@@ -16,8 +16,7 @@ type MenuItem = {
   onPress: () => void;
 };
 
-type Props = {
-  visible: boolean;
+type ContentProps = {
   position: { top: number; right: number };
   onClose: () => void;
   onRename: () => void;
@@ -26,15 +25,18 @@ type Props = {
   onDelete: () => void;
 };
 
-export function OverflowMenu({
-  visible,
+type Props = ContentProps & {
+  visible: boolean;
+};
+
+export function OverflowMenuContent({
   position,
   onClose,
   onRename,
   onEditInfo,
   onViewPlan,
   onDelete,
-}: Props) {
+}: ContentProps) {
   const { colors, scheme } = useTheme();
 
   const menuItems: MenuItem[] = [
@@ -45,51 +47,72 @@ export function OverflowMenu({
   ];
 
   return (
+    <View
+      style={[
+        styles.menu,
+        {
+          top: position.top,
+          right: position.right,
+          backgroundColor: colors.cardBg,
+          borderColor: colors.divider,
+        },
+        Elevation[scheme][4],
+      ]}
+    >
+      {menuItems.map((item, index) => {
+        const Icon = item.icon;
+        const textColor = item.isDanger ? colors.danger : colors.textTitle;
+        return (
+          <React.Fragment key={item.label}>
+            {index > 0 && (
+              <View style={[styles.divider, { backgroundColor: colors.divider }]} />
+            )}
+            <Pressable
+              style={styles.menuItem}
+              onPress={() => {
+                onClose();
+                item.onPress();
+              }}
+            >
+              {({ pressed }) => (
+                <>
+                  <Icon width={16} height={16} color={textColor} />
+                  <Text style={[styles.menuText, { color: textColor }]}>{item.label}</Text>
+                  {pressed && (
+                    <View
+                      style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay }]}
+                    />
+                  )}
+                </>
+              )}
+            </Pressable>
+          </React.Fragment>
+        );
+      })}
+    </View>
+  );
+}
+
+export function OverflowMenu({
+  visible,
+  position,
+  onClose,
+  onRename,
+  onEditInfo,
+  onViewPlan,
+  onDelete,
+}: Props) {
+  return (
     <Modal transparent visible={visible} animationType="none" statusBarTranslucent>
       <Pressable style={StyleSheet.absoluteFill} onPress={onClose}>
-        <View
-          style={[
-            styles.menu,
-            {
-              top: position.top,
-              right: position.right,
-              backgroundColor: colors.cardBg,
-              borderColor: colors.divider,
-            },
-            Elevation[scheme][4],
-          ]}
-        >
-          {menuItems.map((item, index) => {
-            const Icon = item.icon;
-            const textColor = item.isDanger ? colors.danger : colors.textTitle;
-            return (
-              <React.Fragment key={item.label}>
-                {index > 0 && (
-                  <View style={[styles.divider, { backgroundColor: colors.divider }]} />
-                )}
-                <Pressable
-                  style={styles.menuItem}
-                  onPress={() => {
-                    onClose();
-                    item.onPress();
-                  }}
-                >
-                  {({ pressed }) => (
-                    <>
-                      <Icon width={16} height={16} color={textColor} />
-                      <Text style={[styles.menuText, { color: textColor }]}>{item.label}</Text>
-                      {pressed && (
-                        <View
-                          style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay }]}
-                        />
-                      )}
-                    </>
-                  )}
-                </Pressable>
-              </React.Fragment>
-            );
-          })}
-        </View>
+        <OverflowMenuContent
+          position={position}
+          onClose={onClose}
+          onRename={onRename}
+          onEditInfo={onEditInfo}
+          onViewPlan={onViewPlan}
+          onDelete={onDelete}
+        />
       </Pressable>
     </Modal>
   );

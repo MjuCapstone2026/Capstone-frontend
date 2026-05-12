@@ -6,9 +6,10 @@ import { ChatSendButton } from '@/components/ChatSendButton';
 
 type Props = {
   onSend: (message: string) => void;
+  onFocus?: () => void;
 };
 
-export function TypeMessageWindow({ onSend }: Props) {
+export function TypeMessageWindow({ onSend, onFocus }: Props) {
   const { colors } = useTheme();
   const [text, setText] = useState('');
 
@@ -40,6 +41,7 @@ export function TypeMessageWindow({ onSend }: Props) {
         placeholderTextColor={colors.textDisabled}
         value={text}
         onChangeText={setText}
+        onFocus={onFocus}
         returnKeyType="send"
         onSubmitEditing={handleSend}
         blurOnSubmit={false}

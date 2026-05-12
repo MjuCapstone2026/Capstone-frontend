@@ -14,3 +14,10 @@ export function getErrorMessage(error: unknown): string {
   }
   return ERROR_MESSAGE.NETWORK_ERROR;
 }
+
+export function getDeleteChatRoomErrorMessage(error: unknown): string {
+  if (axios.isAxiosError(error) && error.response?.status === 409) {
+    return ERROR_MESSAGE.DELETE_CHAT_CONFLICT;
+  }
+  return getErrorMessage(error);
+}

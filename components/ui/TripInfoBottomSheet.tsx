@@ -1,12 +1,15 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Animated,
   Keyboard,
   Modal,
+  PanResponder,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -49,6 +52,7 @@ type Props = {
   visible: boolean;
   mode: Mode;
   initialValues?: Partial<TripInfo>;
+  roomName?: string;
   onSubmit: (info: TripInfo) => void;
   onClose: () => void;
 };
@@ -70,6 +74,20 @@ type StepperRowProps = {
   onIncrement: () => void;
 };
 
+type PlacePrediction = {
+  place_id: string;
+  description: string;
+  structured_formatting?: {
+    main_text?: string;
+    secondary_text?: string;
+  };
+};
+
+const GOOGLE_MAPS_API_KEY = (
+  process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ??
+  ''
+).trim();
+
 function formatDate(date: Date): string {
   return `${date.getMonth() + 1}월 ${date.getDate()}일`;
 }
@@ -83,12 +101,29 @@ function isSameDay(a: Date, b: Date): boolean {
 }
 
 function isBetween(date: Date, start: Date, end: Date): boolean {
-  const time = date.getTime();
-  return time > start.getTime() && time < end.getTime();
+  const dateTime = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const startTime = new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime();
+  const endTime = new Date(end.getFullYear(), end.getMonth(), end.getDate()).getTime();
+  return dateTime > startTime && dateTime < endTime;
 }
 
 function normalizeAges(children: number, ages?: AgeOption[]): (AgeOption | '')[] {
   return Array.from({ length: children }, (_, index) => ages?.[index] ?? '');
+}
+
+function normalizeBudget(value?: number): string {
+  return value ? String(value) : '';
+}
+
+function isSameDateValue(a: Date | null | undefined, b: Date | null | undefined): boolean {
+  if (!a && !b) return true;
+  if (!a || !b) return false;
+  return isSameDay(a, b);
+}
+
+function areSameAges(a: (AgeOption | '')[], b: (AgeOption | '')[]): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((value, index) => value === b[index]);
 }
 
 function Calendar({ startDate, endDate, month, onDayPress, onPrevMonth, onNextMonth }: CalendarProps) {
@@ -248,11 +283,22 @@ function StepperRow({ label, value, min = 0, onDecrement, onIncrement }: Stepper
   );
 }
 
-export function TripInfoBottomSheet({ visible, mode, initialValues, onSubmit, onClose }: Props) {
+export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, onSubmit, onClose }: Props) {
   const { colors, scheme } = useTheme();
   const insets = useSafeAreaInsets();
+  const { height: screenHeight } = useWindowDimensions();
   const scrollViewRef = useRef<ScrollView>(null);
   const destinationInputRef = useRef<TextInput>(null);
+
+  const SNAP_HALF = useMemo(() => screenHeight * 0.60, [screenHeight]);
+  const SNAP_FULL = useMemo(() => screenHeight * 0.92, [screenHeight]);
+
+  const sheetHeightAnim = useRef(new Animated.Value(0)).current;
+  const scrimOpacityAnim = useRef(new Animated.Value(0)).current;
+  const snapRef = useRef<'half' | 'full'>('half');
+  const dragStartHeight = useRef(0);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   const [destination, setDestination] = useState('');
   const [startDate, setStartDate] = useState<Date | null>(null);
@@ -267,6 +313,34 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, onSubmit, on
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [budgetFocused, setBudgetFocused] = useState(false);
+  const [destinationFocused, setDestinationFocused] = useState(false);
+  const [placePredictions, setPlacePredictions] = useState<PlacePrediction[]>([]);
+  const [placesLoading, setPlacesLoading] = useState(false);
+
+  // sheet open animate
+  useEffect(() => {
+    if (!visible) return;
+
+    sheetHeightAnim.setValue(0);
+    scrimOpacityAnim.setValue(0);
+    snapRef.current = 'half';
+
+    requestAnimationFrame(() => {
+      Animated.parallel([
+        Animated.spring(sheetHeightAnim, {
+          toValue: SNAP_HALF,
+          damping: 26,
+          stiffness: 220,
+          useNativeDriver: false,
+        }),
+        Animated.timing(scrimOpacityAnim, {
+          toValue: 1,
+          duration: 220,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    });
+  }, [SNAP_HALF, scrimOpacityAnim, sheetHeightAnim, visible]);
 
   useEffect(() => {
     if (!visible) return;
@@ -283,11 +357,113 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, onSubmit, on
     setPeopleExpanded(false);
     setActiveAgeDropdown(null);
     setCalendarMonth(initialValues?.startDate ?? new Date());
-  }, [initialValues, mode, visible]);
+    setDestinationFocused(false);
+    setPlacePredictions([]);
+  }, [visible, initialValues]);
+
+  useEffect(() => {
+    if (!visible || mode !== 'create' || !destinationFocused) {
+      setPlacesLoading(false);
+      setPlacePredictions([]);
+      return;
+    }
+
+    const query = destination.trim();
+    if (!GOOGLE_MAPS_API_KEY || query.length < 2) {
+      setPlacesLoading(false);
+      setPlacePredictions([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timerId = setTimeout(async () => {
+      setPlacesLoading(true);
+
+      try {
+        const params = new URLSearchParams({
+          input: query,
+          key: GOOGLE_MAPS_API_KEY,
+          language: 'ko',
+        });
+        const response = await fetch(
+          `https://maps.googleapis.com/maps/api/place/autocomplete/json?${params.toString()}`,
+          { signal: controller.signal },
+        );
+        const data = await response.json();
+        setPlacePredictions(Array.isArray(data.predictions) ? data.predictions.slice(0, 5) : []);
+      } catch {
+        if (!controller.signal.aborted) {
+          setPlacePredictions([]);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setPlacesLoading(false);
+        }
+      }
+    }, 350);
+
+    return () => {
+      controller.abort();
+      clearTimeout(timerId);
+    };
+  }, [destination, destinationFocused, mode, visible]);
+
+  const handleClose = useCallback(() => {
+    onCloseRef.current();
+  }, []);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, { dy }) => Math.abs(dy) > 3,
+      onPanResponderGrant: () => {
+        dragStartHeight.current = snapRef.current === 'half' ? SNAP_HALF : SNAP_FULL;
+      },
+      onPanResponderMove: (_, { dy }) => {
+        const newHeight = Math.max(0, Math.min(SNAP_FULL, dragStartHeight.current - dy));
+        sheetHeightAnim.setValue(newHeight);
+        scrimOpacityAnim.setValue(newHeight < SNAP_HALF ? newHeight / SNAP_HALF : 1);
+      },
+      onPanResponderRelease: (_, { dy, vy }) => {
+        const releasedHeight = Math.max(0, Math.min(SNAP_FULL, dragStartHeight.current - dy));
+        const midpoint = (SNAP_HALF + SNAP_FULL) / 2;
+
+        if (vy > 0.8 || releasedHeight < SNAP_HALF * 0.4) {
+          onCloseRef.current();
+        } else if (releasedHeight > midpoint || vy < -0.8) {
+          snapRef.current = 'full';
+          scrimOpacityAnim.setValue(1);
+          Animated.spring(sheetHeightAnim, {
+            toValue: SNAP_FULL,
+            damping: 26,
+            stiffness: 220,
+            useNativeDriver: false,
+          }).start();
+        } else {
+          snapRef.current = 'half';
+          scrimOpacityAnim.setValue(1);
+          Animated.spring(sheetHeightAnim, {
+            toValue: SNAP_HALF,
+            damping: 26,
+            stiffness: 220,
+            useNativeDriver: false,
+          }).start();
+        }
+      },
+    }),
+  ).current;
 
   useEffect(() => {
     const handleKeyboardShow = (event: { endCoordinates: { height: number } }) => {
       setKeyboardHeight(event.endCoordinates.height);
+      snapRef.current = 'full';
+      scrimOpacityAnim.setValue(1);
+      Animated.spring(sheetHeightAnim, {
+        toValue: SNAP_FULL,
+        damping: 26,
+        stiffness: 220,
+        useNativeDriver: false,
+      }).start();
       if (budgetFocused) {
         setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 40);
       }
@@ -305,7 +481,7 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, onSubmit, on
       didShowSubscription.remove();
       hideSubscription.remove();
     };
-  }, [budgetFocused]);
+  }, [SNAP_FULL, budgetFocused, scrimOpacityAnim, sheetHeightAnim]);
 
   useEffect(() => {
     if (!budgetFocused || keyboardHeight === 0) return;
@@ -319,13 +495,25 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, onSubmit, on
 
   const allChildAgesFilled =
     children === 0 || (childAges.length === children && childAges.every(age => age !== ''));
+  const initialChildren = initialValues?.children ?? 0;
+  const initialChildAges = normalizeAges(initialChildren, initialValues?.childAges);
+  const hasChanges =
+    mode === 'create' ||
+    destination.trim() !== (initialValues?.destination ?? '').trim() ||
+    !isSameDateValue(startDate, initialValues?.startDate ?? null) ||
+    !isSameDateValue(endDate, initialValues?.endDate ?? null) ||
+    adults !== (initialValues?.adults ?? 1) ||
+    children !== initialChildren ||
+    !areSameAges(childAges, initialChildAges) ||
+    budget !== normalizeBudget(initialValues?.budget);
   const isValid =
     destination.trim() !== '' &&
     startDate !== null &&
     endDate !== null &&
     adults >= 1 &&
     allChildAgesFilled &&
-    Number(budget) > 0;
+    Number(budget) > 0 &&
+    hasChanges;
 
   const dateLabel =
     startDate && endDate
@@ -381,238 +569,301 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, onSubmit, on
     });
   };
 
+  const handleSelectPlace = (place: PlacePrediction) => {
+    setDestination(place.description);
+    setDestinationFocused(false);
+    setPlacePredictions([]);
+    Keyboard.dismiss();
+  };
+
   return (
     <Modal
       transparent
       visible={visible}
-      animationType="fade"
+      animationType="none"
       statusBarTranslucent
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
-      <View style={[styles.scrim, { backgroundColor: colors.scrimModal }]}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+      <Animated.View style={[styles.scrim, { backgroundColor: colors.scrimModal, opacity: scrimOpacityAnim }]}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
 
-        <View style={[styles.sheet, { backgroundColor: colors.pageBg }]}>
+        <Animated.View style={[styles.sheet, { backgroundColor: colors.pageBg, height: sheetHeightAnim }]}>
+          <View {...panResponder.panHandlers} style={styles.handleArea}>
             <View style={[styles.handle, { backgroundColor: colors.textCaption }]} />
+          </View>
 
-            <ScrollView
-              ref={scrollViewRef}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              contentContainerStyle={[styles.content, { paddingBottom: contentBottomPadding }]}
-            >
-              <Text style={[styles.title, { color: colors.textTitle }]}>여행 정보를 입력해주세요</Text>
-              <View style={styles.fieldGroup}>
-                <Text style={[styles.fieldLabel, { color: colors.textSub }]}>여행지</Text>
-                <View style={[styles.inputBox, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}>
-                  <TextInput
+          <ScrollView
+            ref={scrollViewRef}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={[styles.content, { paddingBottom: contentBottomPadding }]}
+          >
+            <View style={styles.titleRow}>
+              <Text style={[styles.title, { color: colors.textTitle }]}>
+                {mode === 'create' ? '여행 정보를 입력해주세요' : '여행 정보 수정'}
+              </Text>
+              {mode === 'edit' && roomName ? (
+                <Text style={[styles.roomName, { color: colors.textCaption }]} numberOfLines={1}>
+                  {roomName}
+                </Text>
+              ) : null}
+            </View>
+            <View style={styles.fieldGroup}>
+              <Text style={[styles.fieldLabel, { color: colors.textSub }]}>여행지</Text>
+              <View style={[styles.inputBox, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}>
+                <TextInput
                     ref={destinationInputRef}
                     value={destination}
                     onChangeText={setDestination}
+                    onFocus={() => setDestinationFocused(true)}
+                    editable={mode === 'create'}
                     placeholder="여행지를 입력해주세요"
                     placeholderTextColor={colors.textDisabled}
-                    style={[styles.textInput, { color: colors.textTitle }]}
+                    style={[styles.textInput, { color: mode === 'create' ? colors.textTitle : colors.textDisabled }]}
                   />
                   <Pressable
-                    onPress={() => destinationInputRef.current?.focus()}
+                    onPress={() => {
+                      if (mode === 'create') destinationInputRef.current?.focus();
+                    }}
                     style={styles.inputIconButton}
                     hitSlop={8}
                   >
-                    <IcSearch width={20} height={20} color={destination ? colors.textTitle : colors.textCaption} />
+                    <IcSearch
+                      width={20}
+                      height={20}
+                      color={mode === 'create' && destination ? colors.textTitle : colors.textCaption}
+                    />
                   </Pressable>
-                </View>
               </View>
-
-              <View style={styles.fieldGroup}>
-                <Text style={[styles.fieldLabel, { color: colors.textSub }]}>날짜</Text>
-                <Pressable
-                  onPress={() => {
-                    setCalendarExpanded(value => !value);
-                    setPeopleExpanded(false);
-                    setActiveAgeDropdown(null);
-                  }}
-                  style={[styles.inputBox, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}
-                >
-                  {({ pressed }) => (
-                    <>
-                      <Text style={[styles.inputValue, { color: startDate ? colors.textTitle : colors.textDisabled }]}>
-                        {dateLabel}
-                      </Text>
-                      <IcPlan width={20} height={20} color={startDate ? colors.textTitle : colors.textCaption} />
-                      {pressed && (
-                        <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay, borderRadius: BorderRadius.lg }]} />
-                      )}
-                    </>
-                  )}
-                </Pressable>
-                {calendarExpanded && (
-                  <Calendar
-                    startDate={startDate}
-                    endDate={endDate}
-                    month={calendarMonth}
-                    onDayPress={handleDayPress}
-                    onPrevMonth={() => setCalendarMonth(value => new Date(value.getFullYear(), value.getMonth() - 1, 1))}
-                    onNextMonth={() => setCalendarMonth(value => new Date(value.getFullYear(), value.getMonth() + 1, 1))}
-                  />
-                )}
-              </View>
-
-              <View style={styles.fieldGroup}>
-                <Text style={[styles.fieldLabel, { color: colors.textSub }]}>인원</Text>
-                <Pressable
-                  onPress={() => {
-                    setPeopleExpanded(value => !value);
-                    setCalendarExpanded(false);
-                    setActiveAgeDropdown(null);
-                  }}
-                  style={[styles.inputBox, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}
-                >
-                  {({ pressed }) => (
-                    <>
-                      <Text style={[styles.inputValue, { color: colors.textTitle }]}>{peopleLabel}</Text>
-                      <View style={peopleExpanded && styles.chevronOpen}>
-                        <IcChevronDown width={20} height={20} color={peopleExpanded ? colors.textTitle : colors.textCaption} />
-                      </View>
-                      {pressed && (
-                        <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay, borderRadius: BorderRadius.lg }]} />
-                      )}
-                    </>
-                  )}
-                </Pressable>
-
-                {peopleExpanded && (
-                  <View style={[styles.peoplePanel, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}>
-                    <StepperRow
-                      label="성인"
-                      value={adults}
-                      min={1}
-                      onDecrement={() => setAdults(value => Math.max(1, value - 1))}
-                      onIncrement={() => setAdults(value => Math.min(MAX_PEOPLE_COUNT, value + 1))}
-                    />
-                    <StepperRow
-                      label="아동"
-                      value={children}
-                      onDecrement={() => updateChildren(children - 1)}
-                      onIncrement={() => updateChildren(Math.min(MAX_PEOPLE_COUNT, children + 1))}
-                    />
-                    {childAges.map((age, index) => (
-                      <View
-                        key={index}
+              {mode === 'create' && destinationFocused && (placesLoading || placePredictions.length > 0) ? (
+                <View style={[styles.placePanel, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}>
+                  {placesLoading ? (
+                    <Text style={[styles.placeMetaText, { color: colors.textCaption }]}>검색 중</Text>
+                  ) : (
+                    placePredictions.map((place, index) => (
+                      <Pressable
+                        key={place.place_id}
+                        onPress={() => handleSelectPlace(place)}
                         style={[
-                          styles.ageItem,
-                          activeAgeDropdown === index && styles.ageItemActive,
+                          styles.placeOption,
+                          index < placePredictions.length - 1 && { borderBottomColor: colors.divider, borderBottomWidth: 1 },
                         ]}
                       >
-                        <View style={[styles.ageDivider, { backgroundColor: colors.divider }]} />
-                        <Pressable
-                          onPress={() => setActiveAgeDropdown(activeAgeDropdown === index ? null : index)}
-                          style={styles.ageRow}
-                        >
-                          <Text style={[styles.ageLabel, { color: colors.textCaption }]}>아동 {index + 1}</Text>
-                          <View style={[styles.ageValueRow, { borderColor: colors.divider }]}>
-                            <Text style={[styles.ageValue, { color: age ? colors.textTitle : colors.textDisabled }]}>
-                              {age || '나이 선택'}
+                        {({ pressed }) => (
+                          <>
+                            <Text style={[styles.placeMainText, { color: colors.textTitle }]} numberOfLines={1}>
+                              {place.structured_formatting?.main_text ?? place.description}
                             </Text>
-                            <View style={[styles.ageValueIcon, activeAgeDropdown === index && styles.chevronOpen]}>
-                              <IcChevronDown width={12} height={12} color={age ? colors.textTitle : colors.textCaption} />
-                            </View>
-                          </View>
-                        </Pressable>
-                        {activeAgeDropdown === index && (
-                          <View style={[styles.ageDropdown, { backgroundColor: colors.cardBg, borderColor: colors.divider }]}>
-                            {AGE_OPTIONS.map(option => (
-                              <Pressable
-                                key={option}
-                                onPress={() => {
-                                  const next = [...childAges];
-                                  next[index] = option;
-                                  setChildAges(next);
-                                  setActiveAgeDropdown(null);
-                                }}
-                                style={[
-                                  styles.ageOption,
-                                  age === option && { backgroundColor: colors.primary },
-                                  { borderBottomColor: colors.divider },
-                                ]}
-                              >
-                                {({ pressed }) => (
-                                  <>
-                                    <Text style={[styles.ageOptionText, { color: age === option ? colors.pageBg : colors.textTitle }]}>
-                                      {option}
-                                    </Text>
-                                    {pressed && (
-                                      <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay }]} />
-                                    )}
-                                  </>
-                                )}
-                              </Pressable>
-                            ))}
-                          </View>
+                            {place.structured_formatting?.secondary_text ? (
+                              <Text style={[styles.placeSubText, { color: colors.textCaption }]} numberOfLines={1}>
+                                {place.structured_formatting.secondary_text}
+                              </Text>
+                            ) : null}
+                            {pressed && (
+                              <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay }]} />
+                            )}
+                          </>
                         )}
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
-
-              <View style={styles.budgetGroup}>
-                <Text style={[styles.fieldLabel, { color: colors.textSub }]}>예산</Text>
-                <View style={styles.budgetControl}>
-                  <Text style={[styles.budgetApprox, { color: colors.textCaption }]}>약</Text>
-                  <View style={[styles.budgetInputBox, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}>
-                    <TextInput
-                      value={budget}
-                      onChangeText={value => setBudget(value.replace(/[^0-9]/g, ''))}
-                      onFocus={() => {
-                        setBudgetFocused(true);
-                        setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 80);
-                      }}
-                      onBlur={() => setBudgetFocused(false)}
-                      placeholder="0"
-                      placeholderTextColor={colors.textDisabled}
-                      keyboardType="number-pad"
-                      style={[styles.budgetInput, { color: colors.textTitle }]}
-                    />
-                  </View>
-                  <Text style={[styles.budgetUnit, { color: colors.textCaption }]}>만원</Text>
-                </View>
-              </View>
-
-              <View style={[styles.footer, { paddingBottom: footerBottom }]}>
-                <Pressable
-                  onPress={handleSubmit}
-                  disabled={!isValid}
-                  style={[
-                    styles.primaryButton,
-                    {
-                      backgroundColor: isValid ? colors.primary : colors.secondarySurface,
-                      borderColor: isValid ? colors.primaryActive : colors.divider,
-                    },
-                  ]}
-                >
-                  {({ pressed }) => (
-                    <>
-                      <Text style={[styles.primaryButtonText, { color: isValid ? colors.pageBg : colors.textDisabled }]}>
-                        {buttonLabel}
-                      </Text>
-                      {pressed && isValid && (
-                        <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay, borderRadius: BorderRadius.md }]} />
-                      )}
-                    </>
+                      </Pressable>
+                    ))
                   )}
-                </Pressable>
+                </View>
+              ) : null}
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={[styles.fieldLabel, { color: colors.textSub }]}>날짜</Text>
+              <Pressable
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setDestinationFocused(false);
+                  setPlacePredictions([]);
+                  setCalendarExpanded(value => !value);
+                  setPeopleExpanded(false);
+                  setActiveAgeDropdown(null);
+                }}
+                style={[styles.inputBox, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}
+              >
+                {({ pressed }) => (
+                  <>
+                    <Text style={[styles.inputValue, { color: startDate ? colors.textTitle : colors.textDisabled }]}>
+                      {dateLabel}
+                    </Text>
+                    <IcPlan width={20} height={20} color={startDate ? colors.textTitle : colors.textCaption} />
+                    {pressed && (
+                      <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay, borderRadius: BorderRadius.lg }]} />
+                    )}
+                  </>
+                )}
+              </Pressable>
+              {calendarExpanded && (
+                <Calendar
+                  startDate={startDate}
+                  endDate={endDate}
+                  month={calendarMonth}
+                  onDayPress={handleDayPress}
+                  onPrevMonth={() => setCalendarMonth(value => new Date(value.getFullYear(), value.getMonth() - 1, 1))}
+                  onNextMonth={() => setCalendarMonth(value => new Date(value.getFullYear(), value.getMonth() + 1, 1))}
+                />
+              )}
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={[styles.fieldLabel, { color: colors.textSub }]}>인원</Text>
+              <Pressable
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setDestinationFocused(false);
+                  setPlacePredictions([]);
+                  setPeopleExpanded(value => !value);
+                  setCalendarExpanded(false);
+                  setActiveAgeDropdown(null);
+                }}
+                style={[styles.inputBox, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}
+              >
+                {({ pressed }) => (
+                  <>
+                    <Text style={[styles.inputValue, { color: colors.textTitle }]}>{peopleLabel}</Text>
+                    <View style={peopleExpanded && styles.chevronOpen}>
+                      <IcChevronDown width={20} height={20} color={peopleExpanded ? colors.textTitle : colors.textCaption} />
+                    </View>
+                    {pressed && (
+                      <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay, borderRadius: BorderRadius.lg }]} />
+                    )}
+                  </>
+                )}
+              </Pressable>
+
+              {peopleExpanded && (
+                <View style={[styles.peoplePanel, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}>
+                  <StepperRow
+                    label="성인"
+                    value={adults}
+                    min={1}
+                    onDecrement={() => setAdults(value => Math.max(1, value - 1))}
+                    onIncrement={() => setAdults(value => Math.min(MAX_PEOPLE_COUNT, value + 1))}
+                  />
+                  <StepperRow
+                    label="아동"
+                    value={children}
+                    onDecrement={() => updateChildren(children - 1)}
+                    onIncrement={() => updateChildren(Math.min(MAX_PEOPLE_COUNT, children + 1))}
+                  />
+                  {childAges.map((age, index) => (
+                    <View
+                      key={index}
+                      style={[
+                        styles.ageItem,
+                        activeAgeDropdown === index && styles.ageItemActive,
+                      ]}
+                    >
+                      <View style={[styles.ageDivider, { backgroundColor: colors.divider }]} />
+                      <Pressable
+                        onPress={() => setActiveAgeDropdown(activeAgeDropdown === index ? null : index)}
+                        style={styles.ageRow}
+                      >
+                        <Text style={[styles.ageLabel, { color: colors.textCaption }]}>아동 {index + 1}</Text>
+                        <View style={[styles.ageValueRow, { borderColor: colors.divider }]}>
+                          <Text style={[styles.ageValue, { color: age ? colors.textTitle : colors.textDisabled }]}>
+                            {age || '나이 선택'}
+                          </Text>
+                          <View style={[styles.ageValueIcon, activeAgeDropdown === index && styles.chevronOpen]}>
+                            <IcChevronDown width={12} height={12} color={age ? colors.textTitle : colors.textCaption} />
+                          </View>
+                        </View>
+                      </Pressable>
+                      {activeAgeDropdown === index && (
+                        <View style={[styles.ageDropdown, { backgroundColor: colors.cardBg, borderColor: colors.divider }]}>
+                          {AGE_OPTIONS.map(option => (
+                            <Pressable
+                              key={option}
+                              onPress={() => {
+                                const next = [...childAges];
+                                next[index] = option;
+                                setChildAges(next);
+                                setActiveAgeDropdown(null);
+                              }}
+                              style={[
+                                styles.ageOption,
+                                age === option && { backgroundColor: colors.primary },
+                                { borderBottomColor: colors.divider },
+                              ]}
+                            >
+                              {({ pressed }) => (
+                                <>
+                                  <Text style={[styles.ageOptionText, { color: age === option ? colors.pageBg : colors.textTitle }]}>
+                                    {option}
+                                  </Text>
+                                  {pressed && (
+                                    <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay }]} />
+                                  )}
+                                </>
+                              )}
+                            </Pressable>
+                          ))}
+                        </View>
+                      )}
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+
+            <View style={styles.budgetGroup}>
+              <Text style={[styles.fieldLabel, { color: colors.textSub }]}>예산</Text>
+              <View style={styles.budgetControl}>
+                <Text style={[styles.budgetApprox, { color: colors.textCaption }]}>약</Text>
+                <View style={[styles.budgetInputBox, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}>
+                  <TextInput
+                    value={budget}
+                    onChangeText={value => setBudget(value.replace(/[^0-9]/g, ''))}
+                    onFocus={() => {
+                      setBudgetFocused(true);
+                      setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 80);
+                    }}
+                    onBlur={() => setBudgetFocused(false)}
+                    placeholder="0"
+                    placeholderTextColor={colors.textDisabled}
+                    keyboardType="number-pad"
+                    style={[styles.budgetInput, { color: colors.textTitle }]}
+                  />
+                </View>
+                <Text style={[styles.budgetUnit, { color: colors.textCaption }]}>만원</Text>
               </View>
-            </ScrollView>
-        </View>
-      </View>
+            </View>
+
+            <View style={[styles.footer, { paddingBottom: footerBottom }]}>
+              <Pressable
+                onPress={handleSubmit}
+                disabled={!isValid}
+                style={[
+                  styles.primaryButton,
+                  {
+                    backgroundColor: isValid ? colors.primary : colors.secondarySurface,
+                    borderColor: isValid ? colors.primaryActive : colors.divider,
+                  },
+                ]}
+              >
+                {({ pressed }) => (
+                  <>
+                    <Text style={[styles.primaryButtonText, { color: isValid ? colors.pageBg : colors.textDisabled }]}>
+                      {buttonLabel}
+                    </Text>
+                    {pressed && isValid && (
+                      <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay, borderRadius: BorderRadius.md }]} />
+                    )}
+                  </>
+                )}
+              </Pressable>
+            </View>
+          </ScrollView>
+        </Animated.View>
+      </Animated.View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: {
-    flex: 1,
-  },
   scrim: {
     flex: 1,
     justifyContent: 'flex-end',
@@ -621,26 +872,37 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     borderTopLeftRadius: BorderRadius.lgModal,
     borderTopRightRadius: BorderRadius.lgModal,
-    maxHeight: '92%',
     maxWidth: 393,
     overflow: 'hidden',
     width: '96%',
   },
+  handleArea: {
+    alignItems: 'center',
+    paddingTop: 14,
+    paddingBottom: 10,
+  },
   handle: {
-    alignSelf: 'center',
     borderRadius: BorderRadius.full,
     height: 8,
-    marginTop: 22,
     width: 82,
   },
   title: {
     ...Typography['heading-xl'],
-    marginBottom: 28,
-    paddingHorizontal: 1,
+    flexShrink: 0,
+  },
+  roomName: {
+    ...Typography['body-md'],
+    flex: 1,
+  },
+  titleRow: {
+    alignItems: 'baseline',
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
   },
   content: {
     paddingHorizontal: 24,
-    paddingTop: 34,
+    paddingTop: 10,
   },
   fieldGroup: {
     gap: 10,
@@ -678,6 +940,29 @@ const styles = StyleSheet.create({
   inputIconButton: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  placePanel: {
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    marginTop: 2,
+    overflow: 'hidden',
+  },
+  placeOption: {
+    gap: 2,
+    overflow: 'hidden',
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+  },
+  placeMainText: {
+    ...Typography['body-md'],
+  },
+  placeSubText: {
+    ...Typography['caption'],
+  },
+  placeMetaText: {
+    ...Typography['body-md'],
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   calendarPanel: {
     borderRadius: BorderRadius.lg,

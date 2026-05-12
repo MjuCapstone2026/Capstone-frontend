@@ -43,6 +43,9 @@ export function RecentChatSection({ chats, onChatPress, onMorePress }: Props) {
       </View>
 
       <View style={styles.list}>
+        {chats.length === 0 ? (
+          <Text style={[styles.emptyText, { color: colors.textCaption }]}>최근 채팅이 없습니다.</Text>
+        ) : null}
         {chats.map((chat) => (
           <Pressable
             key={chat.id}
@@ -136,6 +139,10 @@ const styles = StyleSheet.create({
   },
   preview: {
     ...Typography['body-md'],
+  },
+  emptyText: {
+    ...Typography['body-md'],
+    paddingVertical: 8,
   },
   overlay: {
     borderRadius: BorderRadius.lg,
