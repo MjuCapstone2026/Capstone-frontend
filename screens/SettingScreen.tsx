@@ -1,19 +1,43 @@
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useAuth } from '@clerk/clerk-expo';
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import Toast from 'react-native-toast-message';
+import { useAuth, useUser } from '@clerk/clerk-expo';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/hooks/useTheme';
-import { BorderRadius, Typography } from '@/constants/theme';
+import { Alert } from '@/components/ui/Alert';
+import { Typography, BorderRadius } from '@/constants/theme';
+import { AlertMessages } from '@/constants/alerts';
+import { BOTTOM_NAVIGATION } from '@/constants/layout';
+import IcPrivacy from '@/assets/icons/ic_privacy.svg';
+import IcLogout from '@/assets/icons/ic_logout.svg';
+import IcUserRemove from '@/assets/icons/ic_user_remove.svg';
+import IcChevronDown from '@/assets/icons/ic_chevron_down.svg';
 
-// 임시 로그아웃을 위한 간단한 버튼과 로직입니다.
-// 설정 화면 담당자는 정식 화면 작업 시 이 영역을 다시 구성해야 합니다.
+const formatJoinDate = (date: Date | null | undefined): string => {
+  if (!date) return '';
+  return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 가입`;
+};
+
 export function SettingScreen() {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { signOut } = useAuth();
+  const { user } = useUser();
+
+  const [logoutAlertVisible, setLogoutAlertVisible] = useState(false);
+  const [deleteAlertVisible, setDeleteAlertVisible] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
-  const handleSignOut = async () => {
+  const handleLogoutConfirm = async () => {
     if (isSigningOut) return;
-
+    setLogoutAlertVisible(false);
     try {
       setIsSigningOut(true);
       await signOut();
@@ -22,48 +46,178 @@ export function SettingScreen() {
     }
   };
 
-  return (
-    <View style={[styles.container, { backgroundColor: colors.pageBg }]}>
-      <Text style={[styles.title, { color: colors.textTitle }]}>SettingScreen</Text>
+  const handleDeleteConfirm = () => {
+    setDeleteAlertVisible(false);
+    Toast.show({ type: 'info', text1: '준비 중인 기능이에요', text2: '곧 회원탈퇴 기능을 지원할 예정이에요.' });
+  };
 
-      <Pressable
-        onPress={handleSignOut}
-        disabled={isSigningOut}
-        style={({ pressed }) => [
-          styles.logoutButton,
-          {
-            backgroundColor: colors.danger,
-            opacity: pressed || isSigningOut ? 0.72 : 1,
-          },
+  const email = user?.emailAddresses[0]?.emailAddress ?? '';
+  const joinDate = formatJoinDate(user?.createdAt);
+
+  return (
+    <>
+      <ScrollView
+        style={[styles.container, { backgroundColor: colors.pageBg }]}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: BOTTOM_NAVIGATION + insets.bottom + 16 },
         ]}
+        showsVerticalScrollIndicator={false}
       >
-        {isSigningOut ? (
-          <ActivityIndicator color={colors.cardBg} />
-        ) : (
-          <Text style={[styles.logoutText, { color: colors.cardBg }]}>로그아웃</Text>
-        )}
-      </Pressable>
-    </View>
+        <Text style={[styles.pageTitle, { color: colors.textTitle }]}>설정</Text>
+
+        {/* 프로필 */}
+        <Text style={[styles.sectionLabel, { color: colors.textSub }]}>프로필</Text>
+        <View style={[styles.card, { backgroundColor: colors.cardBg, borderColor: colors.divider }]}>
+          <Text style={[styles.menuText, { color: colors.textTitle }]}>{email}</Text>
+          <Text style={[styles.captionText, { color: colors.textCaption }]}>{joinDate}</Text>
+        </View>
+
+        {/* 개인정보 */}
+        <Text style={[styles.sectionLabel, { color: colors.textSub }]}>개인정보</Text>
+        <Pressable
+          style={[styles.card, { backgroundColor: colors.cardBg, borderColor: colors.divider }]}
+        >
+          {({ pressed }) => (
+            <>
+              <View style={styles.menuRow}>
+                <IcPrivacy width={20} height={20} color={colors.textCaption} />
+                <Text style={[styles.menuText, { color: colors.textTitle }]}>개인정보 처리방침</Text>
+                <View style={styles.chevronRight}>
+                  <IcChevronDown width={20} height={20} color={colors.textCaption} />
+                </View>
+              </View>
+              {pressed && (
+                <View style={[StyleSheet.absoluteFill, styles.cardOverlay, { backgroundColor: colors.pressOverlay }]} />
+              )}
+            </>
+          )}
+        </Pressable>
+
+        {/* 로그아웃 */}
+        <Pressable
+          onPress={() => setLogoutAlertVisible(true)}
+          disabled={isSigningOut}
+          style={[
+            styles.card,
+            { backgroundColor: colors.dangerBg, borderColor: colors.danger },
+          ]}
+        >
+          {({ pressed }) => (
+            <>
+              <View style={styles.logoutRow}>
+                <IcLogout width={20} height={20} color={colors.danger} />
+                {isSigningOut ? (
+                  <ActivityIndicator color={colors.danger} />
+                ) : (
+                  <Text style={[styles.logoutText, { color: colors.danger }]}>로그아웃</Text>
+                )}
+              </View>
+              {pressed && !isSigningOut && (
+                <View style={[StyleSheet.absoluteFill, styles.cardOverlay, { backgroundColor: colors.pressOverlay }]} />
+              )}
+            </>
+          )}
+        </Pressable>
+
+        {/* 계정 */}
+        <Text style={[styles.sectionLabel, { color: colors.textSub }]}>계정</Text>
+        <Pressable
+          onPress={() => setDeleteAlertVisible(true)}
+          style={[styles.card, { backgroundColor: colors.cardBg, borderColor: colors.divider }]}
+        >
+          {({ pressed }) => (
+            <>
+              <View style={styles.menuRow}>
+                <IcUserRemove width={20} height={20} color={colors.danger} />
+                <Text style={[styles.menuText, { color: colors.danger }]}>회원탈퇴</Text>
+                <View style={styles.chevronRight}>
+                  <IcChevronDown width={20} height={20} color={colors.textCaption} />
+                </View>
+              </View>
+              {pressed && (
+                <View style={[StyleSheet.absoluteFill, styles.cardOverlay, { backgroundColor: colors.pressOverlay }]} />
+              )}
+            </>
+          )}
+        </Pressable>
+
+        <Text style={[styles.versionText, { color: colors.textCaption }]}>버전 v1.0.0</Text>
+      </ScrollView>
+
+      <Alert
+        visible={logoutAlertVisible}
+        {...AlertMessages.logout}
+        onConfirm={handleLogoutConfirm}
+        onCancel={() => setLogoutAlertVisible(false)}
+      />
+
+      <Alert
+        visible={deleteAlertVisible}
+        {...AlertMessages.deleteAccount}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteAlertVisible(false)}
+      />
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 24,
+  },
+  content: {
+    paddingHorizontal: 20,
     paddingTop: 72,
-    gap: 24,
+    gap: 8,
   },
-  title: {
+  pageTitle: {
     ...Typography['heading-lg'],
+    marginBottom: 8,
   },
-  logoutButton: {
-    height: 52,
+  sectionLabel: {
+    ...Typography['body-md'],
+    marginTop: 8,
+    marginBottom: 2,
+  },
+  card: {
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    overflow: 'hidden',
+  },
+  cardOverlay: {
+    borderRadius: BorderRadius.md,
+  },
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  logoutRow: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: BorderRadius.sm,
+    gap: 10,
+  },
+  menuText: {
+    ...Typography['body-lg'],
+    flex: 1,
   },
   logoutText: {
-    ...Typography['heading-sm'],
+    ...Typography['body-lg'],
+  },
+  captionText: {
+    ...Typography['caption'],
+    marginTop: 2,
+  },
+  chevronRight: {
+    transform: [{ rotate: '-90deg' }],
+  },
+  versionText: {
+    ...Typography['caption'],
+    textAlign: 'center',
+    marginTop: 16,
   },
 });
