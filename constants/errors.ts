@@ -6,4 +6,5 @@ export const ERROR_MESSAGE = {
   SERVER_ERROR: '서버에 문제가 발생했습니다.',
   NETWORK_ERROR: '네트워크 연결을 확인해주세요.',
   UNKNOWN: '알 수 없는 오류가 발생했습니다.',
+  DELETE_CHAT_CONFLICT: '예약있는 채팅방은 삭제할 수 없어요.',
 } as const;

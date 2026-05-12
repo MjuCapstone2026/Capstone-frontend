@@ -53,7 +53,7 @@ export function ChatHeader({ variant, title, onDrawerOpen, onOverflowOpen }: Pro
             <Text style={[styles.title, { color: colors.textTitle }]} numberOfLines={1}>
               {title}
             </Text>
-            <Pressable onPress={onOverflowOpen} style={styles.iconButton} hitSlop={8}>
+            <Pressable onPress={() => onOverflowOpen?.()} style={styles.iconButton} hitSlop={8}>
               {({ pressed }) => (
                 <>
                   <IcOverflow width={20} height={20} color={colors.primaryActive} />

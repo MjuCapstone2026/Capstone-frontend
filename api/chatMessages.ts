@@ -1,15 +1,17 @@
+import { fetch as expoFetch } from 'expo/fetch';
 import { apiClient, getApiBaseUrl } from './client';
 
 const BASE = '/api/v1/chat-messages';
 
-type ChatMessage = {
+export type ChatMessage = {
   messageId: string;
   role: 'user' | 'assistant';
   content: string;
   createdAt: string;
+  actionResult?: ChatMessageActionResult;
 };
 
-type ChatMessagesResponse = {
+export type ChatMessagesResponse = {
   roomId: string;
   messages: ChatMessage[];
   nextCursor: string | null;
@@ -29,15 +31,21 @@ export type SendChatMessageChunk = {
   content: string;
 };
 
-type ItineraryPlan = {
+export type ItineraryPlan = {
+  index?: number;
   plan_name: string;
   time: string;
   place: string;
   note: string;
+  cost?: {
+    amount: number;
+    currency: string;
+    amount_krw: number | null;
+  } | null;
   status: string;
 };
 
-type DoneItinerary = {
+export type DoneItinerary = {
   itineraryId: string;
   startDate: string;
   endDate: string;
@@ -45,7 +53,7 @@ type DoneItinerary = {
   updatedAt: string;
 };
 
-type DoneChange = {
+export type DoneChange = {
   itineraryId: string;
   startDate: string;
   endDate: string;
@@ -57,7 +65,7 @@ type DoneChange = {
   updatedAt: string;
 };
 
-type DoneReservation = {
+export type DoneReservation = {
   reservationId: string;
   type: string;
   status: string;
@@ -68,11 +76,17 @@ type DoneReservation = {
   reservedAt: string;
 };
 
-type DoneCancel = {
+export type DoneCancel = {
   reservationId: string;
   status: string;
   cancelledAt: string;
 };
+
+export type ChatMessageActionResult =
+  | { type: 'itinerary'; data: DoneItinerary }
+  | { type: 'change'; data: DoneChange }
+  | { type: 'reservation'; data: DoneReservation }
+  | { type: 'cancel'; data: DoneCancel };
 
 export type SendChatMessageDone = {
   userMessage: ChatMessage;
@@ -110,6 +124,7 @@ const parseSseMessage = (message: string) => {
   const lines = message.split(/\r?\n/);
   let event = 'message';
   const dataLines: string[] = [];
+  let hasStartedData = false;
 
   for (const line of lines) {
     if (line.startsWith('event:')) {
@@ -118,7 +133,13 @@ const parseSseMessage = (message: string) => {
     }
 
     if (line.startsWith('data:')) {
+      hasStartedData = true;
       dataLines.push(line.slice('data:'.length).trimStart());
+      continue;
+    }
+
+    if (hasStartedData && line.trim()) {
+      dataLines.push(line);
     }
   }
 
@@ -128,21 +149,29 @@ const parseSseMessage = (message: string) => {
   };
 };
 
-const handleSseMessage = (message: string, handlers: ChatMessageStreamHandlers) => {
+const handleSseMessage = (message: string, handlers: ChatMessageStreamHandlers): boolean => {
   const { event, data } = parseSseMessage(message);
+  const normalizedEvent = event.toLowerCase();
 
   if (!data) {
-    return;
+    return false;
   }
 
-  if (event === 'chunk') {
+  if (data === '[DONE]') {
+    return true;
+  }
+
+  if (normalizedEvent === 'chunk') {
     handlers.onChunk?.(JSON.parse(data) as SendChatMessageChunk);
-    return;
+    return false;
   }
 
-  if (event === 'done') {
+  if (normalizedEvent === 'done') {
     handlers.onDone?.(JSON.parse(data) as SendChatMessageDone);
+    return true;
   }
+
+  return false;
 };
 
 const sendChatMessage = async (
@@ -150,7 +179,9 @@ const sendChatMessage = async (
   roomId: string,
   body: SendChatMessageRequest,
 ): Promise<Response> => {
-  const response = await fetch(`${getApiBaseUrl()}${BASE}/${roomId}`, {
+  const url = `${getApiBaseUrl()}${BASE}/${roomId}`;
+
+  const response = await expoFetch(url, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -183,12 +214,16 @@ export const readChatMessageStream = async (response: Response, handlers: ChatMe
       break;
     }
 
-    buffer += decoder.decode(value, { stream: true });
+    const decoded = decoder.decode(value, { stream: true });
+    buffer += decoded;
     const messages = buffer.split(/\r?\n\r?\n/);
     buffer = messages.pop() ?? '';
 
     for (const message of messages) {
-      handleSseMessage(message, handlers);
+      const isDone = handleSseMessage(message, handlers);
+      if (isDone) {
+        return;
+      }
     }
   }
 

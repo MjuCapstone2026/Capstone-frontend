@@ -87,6 +87,8 @@
 
     - itinerary 변경일 때:
 
+        > AI 서버는 수정된 날짜만 전송하지만, 백엔드에서 기존 일정에 병합한 뒤 **전체 날짜**를 반환합니다.
+
         ```
         event: done
         data: {
@@ -108,8 +110,14 @@
             "endDate": "2026-05-04",
             "dayPlans": {
               "2026-05-01": [
-                {"plan_name": "창덕궁 방문", "time": "09:00 ~ 10:00", "place": "창덕궁", "note": "후원 투어 예약 필요", "status": "todo"}
-              ]
+                {"index": 0, "plan_name": "창덕궁 방문", "time": "09:00 ~ 12:00", "place": "창덕궁", "note": "후원 투어 예약 필요", "cost": {"amount": 3000, "currency": "KRW", "amount_krw": null}, "status": "todo"},
+                {"index": 1, "plan_name": "광장시장 점심", "time": "12:00 ~ 14:30", "place": "광장시장", "note": "", "cost": null, "status": "todo"}
+              ],
+              "2026-05-02": [
+                {"index": 0, "plan_name": "N서울타워 방문", "time": "10:00 ~ 12:00", "place": "남산타워", "note": "", "cost": null, "status": "todo"}
+              ],
+              "2026-05-03": [],
+              "2026-05-04": []
             },
             "updatedAt": "2026-04-03T22:00:05"
           }
