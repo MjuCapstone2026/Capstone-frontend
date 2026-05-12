@@ -200,8 +200,8 @@ export function PlanDetailItem({
               isOpen ? Elevation[scheme][2] : Elevation[scheme][1],
             ]}
           >
-            <View style={styles.header}>
-              <Text style={[styles.title, { color: colors.textTitle }]} numberOfLines={1}>
+            <View style={[styles.header, isOpen && styles.openHeader]}>
+              <Text style={[styles.title, { color: colors.textTitle }]} numberOfLines={2}>
                 {title}
               </Text>
               <Animated.View style={animatedChevron}>
@@ -214,12 +214,12 @@ export function PlanDetailItem({
                 <View style={[styles.divider, { backgroundColor: colors.divider }]} />
                 <View style={styles.expanded}>
                   {reservationSummary ? (
-                    <Text style={[styles.detailTitle, { color: colors.textTitle }]}>
+                    <Text style={[styles.detailTitle, { color: colors.textTitle }]} numberOfLines={2}>
                       {reservationSummary}
                     </Text>
                   ) : null}
                   {memo ? (
-                    <Text style={[styles.detailTitle, { color: colors.textTitle }]}>
+                    <Text style={[styles.detailTitle, { color: colors.textTitle }]} numberOfLines={3}>
                       {memo}
                     </Text>
                   ) : null}
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    paddingVertical: 12,
+    paddingVertical: 16,
     paddingHorizontal: 16,
     gap: 8,
     overflow: 'hidden',
@@ -322,13 +322,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
+  openHeader: {
+    marginBottom: 6,
+  },
   title: {
     ...Typography['heading-md'],
     flex: 1,
   },
   expanded: {
-    gap: 8,
-    paddingLeft: 12,
+    gap: 10,
+    paddingLeft: 8,
+    paddingRight: 4,
+    paddingTop: 6,
   },
   divider: {
     height: 1,

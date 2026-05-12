@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View, Text, Pressable } from 'react-native';
 import { useTheme } from '@/hooks/useTheme';
-import { Typography, BorderRadius, Elevation } from '@/constants/theme';
+import { Typography, BorderRadius } from '@/constants/theme';
 import IcPlanList from '@/assets/icons/ic_plan_list.svg';
 
 type Tab = 'itinerary' | 'reservation';
@@ -25,7 +25,6 @@ export function TravelListTabBar({ tab, onTabChange }: Props) {
       style={[
         styles.container,
         { backgroundColor: colors.cardBg, borderBottomColor: colors.divider },
-        tab === 'itinerary' && Elevation[scheme][2],
       ]}
     >
       <View style={styles.titleRow}>
@@ -68,7 +67,7 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 20,
     borderBottomWidth: 1,
-    gap: 16,
+    gap: 24,
   },
   titleRow: {
     flexDirection: 'row',

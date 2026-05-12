@@ -21,8 +21,16 @@ type DayPlanItem = {
   time: string;
   place: string;
   note: string;
+  cost?: DayPlanCost | null;
   status: string;
+  /** @deprecated Use cost instead. */
   price?: number | null;
+};
+
+export type DayPlanCost = {
+  amount: number;
+  currency: string;
+  amount_krw: number | null;
 };
 
 export type ItineraryDetail = {
@@ -121,7 +129,9 @@ type LogDayPlanItem = {
   time: string;
   place: string;
   note: string;
+  cost?: DayPlanCost | null;
   status: string;
+  /** @deprecated Use cost instead. */
   price?: number | null;
 };
 
