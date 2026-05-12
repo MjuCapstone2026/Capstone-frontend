@@ -44,6 +44,9 @@ export function RecentTravelSection({ travels, onTravelPress, onMorePress }: Pro
       </View>
 
       <View style={styles.list}>
+        {travels.length === 0 ? (
+          <Text style={[styles.emptyText, { color: colors.textCaption }]}>최근 여행이 없습니다.</Text>
+        ) : null}
         {travels.map((travel) => (
           <Pressable
             key={travel.id}
@@ -113,6 +116,10 @@ const styles = StyleSheet.create({
   },
   dateRange: {
     ...Typography['body-md'],
+  },
+  emptyText: {
+    ...Typography['body-md'],
+    paddingVertical: 8,
   },
   overlay: {
     borderRadius: BorderRadius.lg,

@@ -7,10 +7,12 @@ import Toast from 'react-native-toast-message';
 import { useApi } from '@/hooks/useApi';
 import { useTheme } from '@/hooks/useTheme';
 import { getItinerary, updateDayPlans } from '@/api/itineraries';
+import type { DayPlanCost } from '@/api/itineraries';
 import { GC_TIMES, queryKeys, STALE_TIMES } from '@/constants/queryKeys';
 import { BOTTOM_NAVIGATION } from '@/constants/layout';
 import { BorderRadius, Typography } from '@/constants/theme';
 import { getErrorMessage } from '@/utils/getErrorMessage';
+import { getDisplayCost } from '@/utils/itineraryDisplay';
 import { ItineraryOverviewCard2Editing } from '@/components/ItineraryOverviewCard2Editing';
 import { PlanDetailEditItem, ScheduleItem } from '@/components/PlanDetailEditItem';
 
@@ -56,9 +58,18 @@ function getInvalidTimeItem(itemsByDate: Record<string, ScheduleItem[]>): Schedu
 
 function toScheduleItem(
   dateKey: string,
-  item: { index: number; plan_name: string; time: string; place: string; note: string; price?: number | null },
+  item: {
+    index: number;
+    plan_name: string;
+    time: string;
+    place: string;
+    note: string;
+    cost?: DayPlanCost | null;
+    price?: number | null;
+  },
 ): ScheduleItem {
   const { startTime, endTime } = splitTimeRange(item.time);
+  const { price } = getDisplayCost(item.cost, item.price);
 
   return {
     id: `${dateKey}-${item.index}`,
@@ -68,7 +79,7 @@ function toScheduleItem(
     title: item.plan_name,
     memo: item.note || undefined,
     location: item.place || undefined,
-    price: item.price ?? undefined,
+    price,
   };
 }
 
