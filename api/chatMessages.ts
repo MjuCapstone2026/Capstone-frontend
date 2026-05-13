@@ -88,6 +88,17 @@ export type ChatMessageActionResult =
   | { type: 'reservation'; data: DoneReservation }
   | { type: 'cancel'; data: DoneCancel };
 
+export function parseServerActionResult(raw: unknown): ChatMessageActionResult | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const obj = raw as Record<string, unknown>;
+  if (typeof obj.type === 'string' && obj.data != null) return raw as ChatMessageActionResult;
+  // 서버 GET 응답의 raw 형태 — 고유 필드로 타입 감지, 나머지는 change
+  if ('dayPlans' in obj) return { type: 'itinerary', data: obj as unknown as DoneItinerary };
+  if ('cancelledAt' in obj) return { type: 'cancel', data: obj as unknown as DoneCancel };
+  if ('totalPrice' in obj) return { type: 'reservation', data: obj as unknown as DoneReservation };
+  return { type: 'change', data: obj as unknown as DoneChange };
+}
+
 export type SendChatMessageDone = {
   userMessage: ChatMessage;
   assistantMessage: ChatMessage;

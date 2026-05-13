@@ -9,14 +9,14 @@ import Toast from 'react-native-toast-message';
 import { useTheme } from '@/hooks/useTheme';
 import { useApi } from '@/hooks/useApi';
 import { getErrorMessage, getDeleteChatRoomErrorMessage } from '@/utils/getErrorMessage';
-import { formatDateOnly } from '@/utils/dateOnly';
-import { toTripInfoInitialValues } from '@/utils/tripInfo';
+import { formatTripDestinations, toTripInfoInitialValues } from '@/utils/tripInfo';
 import { queryKeys, STALE_TIMES, GC_TIMES } from '@/constants/queryKeys';
 import { AlertMessages } from '@/constants/alerts';
 import { getChatRooms, getChatRoom, deleteChatRoom, updateChatRoomName } from '@/api/chatRooms';
 import {
   getChatMessages,
   sendChatMessageStream,
+  parseServerActionResult,
   ChatMessage,
   ChatMessageActionResult,
   ChatMessagesResponse,
@@ -37,8 +37,6 @@ import { BOTTOM_NAVIGATION, CHAT_HEADER_HEIGHT } from '@/constants/layout';
 
 type Props = { chatId: string };
 type DisplayMessage = ChatMessage;
-// TODO: 백엔드 GET 채팅 메시지 응답에 assistant actionResult가 포함되면 제거.
-type MessageResultsCache = Record<string, ChatMessageActionResult>;
 
 
 function toActionResult(done: {
@@ -89,7 +87,7 @@ function mergeDoneItinerary(old: ItineraryDetail | undefined, itinerary: DoneIti
           place: plan.place,
           note: plan.note,
           status: plan.status,
-          price: plan.cost?.amount_krw ?? plan.cost?.amount ?? null,
+          cost: plan.cost ?? null,
         })),
       ]),
     ),
@@ -117,7 +115,6 @@ export function ChatRoomScreen({ chatId }: Props) {
   const [isSending, setIsSending] = useState(false);
   const [streamingMessages, setStreamingMessages] = useState<DisplayMessage[]>([]);
   const [confirmedLocalMessages, setConfirmedLocalMessages] = useState<DisplayMessage[]>([]);
-  const [messageItineraries, setMessageItineraries] = useState<Record<string, DoneItinerary>>({});
   const [thinkingDotCount, setThinkingDotCount] = useState(1);
   const [selectedChatId, setSelectedChatId] = useState(chatId);
   const deletedChatIdsRef = useRef(new Set<string>());
@@ -149,14 +146,6 @@ export function ChatRoomScreen({ chatId }: Props) {
     },
     enabled: !!roomData,
     staleTime: STALE_TIMES.chatRooms.messages,
-    gcTime: GC_TIMES.chatRooms.messages,
-  });
-
-  const { data: messageResults = {} } = useQuery({
-    queryKey: queryKeys.chatRooms.messageResults(chatId),
-    queryFn: () =>
-      queryClient.getQueryData<MessageResultsCache>(queryKeys.chatRooms.messageResults(chatId)) ?? {},
-    staleTime: Infinity,
     gcTime: GC_TIMES.chatRooms.messages,
   });
 
@@ -231,7 +220,6 @@ export function ChatRoomScreen({ chatId }: Props) {
       if (roomId !== chatId) {
         queryClient.removeQueries({ queryKey: queryKeys.chatRooms.detail(roomId) });
         queryClient.removeQueries({ queryKey: queryKeys.chatRooms.messages(roomId) });
-        queryClient.removeQueries({ queryKey: queryKeys.chatRooms.messageResults(roomId) });
       }
       queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.itineraries.all });
@@ -276,8 +264,7 @@ export function ChatRoomScreen({ chatId }: Props) {
     mutationFn: ({ info, itineraryId }: { info: TripInfo; itineraryId: string }) =>
       authRequest((token) =>
         updateItinerary(token, itineraryId, {
-          startDate: formatDateOnly(info.startDate),
-          endDate: formatDateOnly(info.endDate),
+          destinations: formatTripDestinations(info.destinations),
           budget: info.budget * 10000,
           adultCount: info.adults,
           childCount: info.children,
@@ -339,23 +326,8 @@ export function ChatRoomScreen({ chatId }: Props) {
           },
           onDone: (done) => {
             const assistantMessage = attachDoneResultToAssistantMessage(done);
-            const assistantResult = assistantMessage.actionResult;
-
-            if (assistantResult) {
-              queryClient.setQueryData<MessageResultsCache>(
-                queryKeys.chatRooms.messageResults(chatId),
-                (old) => ({
-                  ...(old ?? {}),
-                  [done.assistantMessage.messageId]: assistantResult,
-                }),
-              );
-            }
 
             if (done.itinerary) {
-              setMessageItineraries((prev) => ({
-                ...prev,
-                [done.assistantMessage.messageId]: done.itinerary!,
-              }));
               queryClient.setQueryData<ItineraryDetail>(
                 queryKeys.itineraries.detail(done.itinerary.itineraryId),
                 (old) => mergeDoneItinerary(old, done.itinerary!),
@@ -432,12 +404,7 @@ export function ChatRoomScreen({ chatId }: Props) {
       .reverse()
       .map((message) => ({
         ...message,
-        actionResult:
-          message.actionResult ??
-          messageResults[message.messageId] ??
-          (messageItineraries[message.messageId]
-            ? { type: 'itinerary', data: messageItineraries[message.messageId] }
-            : undefined),
+        actionResult: parseServerActionResult(message.actionResult),
       }));
     const serverMessageIds = new Set(serverMessages.map((message) => message.messageId));
     const localConfirmedMessages = confirmedLocalMessages.filter(
@@ -445,7 +412,7 @@ export function ChatRoomScreen({ chatId }: Props) {
     );
 
     return [...serverMessages, ...localConfirmedMessages, ...streamingMessages];
-  }, [confirmedLocalMessages, messageItineraries, messageResults, messagesData, streamingMessages]);
+  }, [confirmedLocalMessages, messagesData, streamingMessages]);
 
   useEffect(() => {
     if (messagesLoading) return;
@@ -558,14 +525,21 @@ export function ChatRoomScreen({ chatId }: Props) {
           closeDrawerThen(() => setEditTripInfoVisible(true));
         }}
         onChatViewPlan={(id) => {
-          closeDrawerThen(() => {
-          // 캐시에서 itineraryId 조회 후 해당 일정으로 이동
-            const cached = queryClient.getQueryData<{ itineraryId?: string }>(
-              queryKeys.chatRooms.detail(String(id)),
-            );
-            if (cached?.itineraryId) {
-              router.push({ pathname: '/plan-list/[id]', params: { id: cached.itineraryId } });
-            } else {
+          closeDrawerThen(async () => {
+            try {
+              const room = await queryClient.fetchQuery({
+                queryKey: queryKeys.chatRooms.detail(String(id)),
+                queryFn: () => authRequest((token) => getChatRoom(token, String(id))),
+                staleTime: STALE_TIMES.chatRooms.detail,
+                gcTime: GC_TIMES.chatRooms.detail,
+              });
+              if (room.itineraryId) {
+                router.push({ pathname: '/plan-list/[id]', params: { id: room.itineraryId } });
+              } else {
+                router.navigate('/plan-list');
+              }
+            } catch (error) {
+              Toast.show({ type: 'error', text1: getErrorMessage(error) });
               router.navigate('/plan-list');
             }
           });

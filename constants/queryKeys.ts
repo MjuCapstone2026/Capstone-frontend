@@ -9,8 +9,6 @@ export const queryKeys = {
     all: ['chatRooms'] as const,
     detail: (roomId: string) => ['chatRooms', roomId] as const,
     messages: (roomId: string) => ['chatRooms', roomId, 'messages'] as const,
-    // TODO: 백엔드 GET 채팅 메시지 응답에 assistant actionResult가 포함되면 제거.
-    messageResults: (roomId: string) => ['chatRooms', roomId, 'messageResults'] as const,
   },
 
   reservations: {
