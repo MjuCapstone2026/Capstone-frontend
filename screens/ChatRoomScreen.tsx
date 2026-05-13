@@ -43,6 +43,7 @@ type PendingChatState = {
   isSending: boolean;
   userMessage: ChatMessage;
   assistantMessage?: ChatMessage;
+  lastChunkAt?: number;
 };
 
 function toActionResult(done: {
@@ -121,6 +122,7 @@ export function ChatRoomScreen({ chatId }: Props) {
     right: 16,
   });
   const [thinkingDotCount, setThinkingDotCount] = useState(1);
+  const [showResultPreparing, setShowResultPreparing] = useState(false);
   const [selectedChatId, setSelectedChatId] = useState(chatId);
   const deletedChatIdsRef = useRef(new Set<string>());
   const pendingDrawerActionRef = useRef<(() => void) | null>(null);
@@ -234,6 +236,20 @@ export function ChatRoomScreen({ chatId }: Props) {
     return () => clearInterval(intervalId);
   }, [pendingChat]);
 
+  useEffect(() => {
+    if (!pendingChat?.isSending || !pendingChat.assistantMessage?.content || !pendingChat.lastChunkAt) {
+      setShowResultPreparing(false);
+      return;
+    }
+
+    setShowResultPreparing(false);
+    const timerId = setTimeout(() => {
+      setShowResultPreparing(true);
+    }, 700);
+
+    return () => clearTimeout(timerId);
+  }, [pendingChat?.isSending, pendingChat?.assistantMessage?.content, pendingChat?.lastChunkAt]);
+
   const deleteMutation = useMutation({
     mutationFn: (roomId: string) => authRequest((token) => deleteChatRoom(token, roomId)),
     onSuccess: (_, roomId) => {
@@ -341,7 +357,7 @@ export function ChatRoomScreen({ chatId }: Props) {
                   createdAt: new Date().toISOString(),
                 };
 
-              return { ...old, assistantMessage };
+              return { ...old, assistantMessage, lastChunkAt: Date.now() };
             });
             setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: false }), 0);
           },
@@ -379,14 +395,10 @@ export function ChatRoomScreen({ chatId }: Props) {
             );
             queryClient.setQueryData<PendingChatState | null>(pendingKey, null);
 
-            queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.messages(chatId) });
-            queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.all });
+            queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.all, exact: true });
 
             if (done.itinerary) {
               queryClient.invalidateQueries({ queryKey: queryKeys.itineraries.all });
-              queryClient.invalidateQueries({
-                queryKey: queryKeys.itineraries.detail(done.itinerary.itineraryId),
-              });
             }
 
             if (done.change) {
@@ -500,13 +512,15 @@ export function ChatRoomScreen({ chatId }: Props) {
               variant="ai"
               message={`AI가 열심히 생각 중입니다${'.'.repeat(thinkingDotCount)}`}
               timestamp={formatTimestamp(new Date().toISOString())}
+              hideTimestamp
             />
           )}
-          {pendingChat?.isSending && pendingChat.assistantMessage?.content && (
+          {pendingChat?.isSending && pendingChat.assistantMessage?.content && showResultPreparing && (
             <ChatBubble
               variant="ai"
               message={`여행 일정을 표로 정리하는 중입니다${'.'.repeat(thinkingDotCount)}`}
               timestamp={formatTimestamp(new Date().toISOString())}
+              hideTimestamp
             />
           )}
         </ScrollView>
