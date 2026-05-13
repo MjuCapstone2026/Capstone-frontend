@@ -518,7 +518,7 @@ export function ChatRoomScreen({ chatId }: Props) {
           {pendingChat?.isSending && pendingChat.assistantMessage?.content && showResultPreparing && (
             <ChatBubble
               variant="ai"
-              message={`여행 일정을 표로 정리하는 중입니다${'.'.repeat(thinkingDotCount)}`}
+              message={`보기 좋게 정리하는 중입니다${'.'.repeat(thinkingDotCount)}`}
               timestamp={formatTimestamp(new Date().toISOString())}
               hideTimestamp
             />
