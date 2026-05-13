@@ -57,7 +57,9 @@ function ItineraryDetail({ itinerary }: { itinerary: DoneItinerary }) {
             plans.map((plan, index) => (
               <View key={`${date}-${plan.index ?? index}`} style={styles.planRow}>
                 <View style={styles.planMainRow}>
-                  <Text style={[styles.planMain, { color: colors.textTitle }]}>
+                  <Text
+                    style={[styles.planMain, { color: colors.textTitle }]}
+                  >
                     {plan.time} · {plan.plan_name}
                   </Text>
                   {plan.cost ? (
@@ -219,15 +221,14 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   planMainRow: {
-    alignItems: 'flex-start',
+    alignItems: 'baseline',
     flexDirection: 'row',
     gap: 8,
-    justifyContent: 'space-between',
   },
   planMain: {
     ...Typography['body-md'],
-    lineHeight: undefined,
     flex: 1,
+    minWidth: 0,
   },
   costText: {
     ...Typography['caption'],
