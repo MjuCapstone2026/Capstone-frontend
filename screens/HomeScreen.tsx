@@ -176,6 +176,7 @@ export function HomeScreen() {
       );
       queryClient.removeQueries({ queryKey: queryKeys.chatRooms.detail(roomId) });
       queryClient.removeQueries({ queryKey: queryKeys.chatRooms.messages(roomId) });
+      queryClient.removeQueries({ queryKey: queryKeys.chatRooms.pending(roomId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.itineraries.all });
       setSelectedChatId(null);

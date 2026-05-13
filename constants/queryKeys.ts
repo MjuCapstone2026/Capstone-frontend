@@ -9,6 +9,7 @@ export const queryKeys = {
     all: ['chatRooms'] as const,
     detail: (roomId: string) => ['chatRooms', roomId] as const,
     messages: (roomId: string) => ['chatRooms', roomId, 'messages'] as const,
+    pending: (roomId: string) => ['chatRooms', roomId, 'pending'] as const,
   },
 
   reservations: {
@@ -43,5 +44,6 @@ export const GC_TIMES = {
   chatRooms: {
     detail: 1000 * 60 * 5,
     messages: 1000 * 60 * 3,
+    pending: 1000 * 60 * 30,
   },
 } as const;

@@ -38,6 +38,11 @@ import { BOTTOM_NAVIGATION, CHAT_HEADER_HEIGHT } from '@/constants/layout';
 type Props = { chatId: string };
 type DisplayMessage = ChatMessage;
 
+type PendingChatState = {
+  isSending: boolean;
+  userMessage: ChatMessage;
+  assistantMessage?: ChatMessage;
+};
 
 function toActionResult(done: {
   itinerary?: SendChatMessageDone['itinerary'];
@@ -112,9 +117,6 @@ export function ChatRoomScreen({ chatId }: Props) {
     top: CHAT_HEADER_HEIGHT + insets.top - 8,
     right: 16,
   });
-  const [isSending, setIsSending] = useState(false);
-  const [streamingMessages, setStreamingMessages] = useState<DisplayMessage[]>([]);
-  const [confirmedLocalMessages, setConfirmedLocalMessages] = useState<DisplayMessage[]>([]);
   const [thinkingDotCount, setThinkingDotCount] = useState(1);
   const [selectedChatId, setSelectedChatId] = useState(chatId);
   const deletedChatIdsRef = useRef(new Set<string>());
@@ -147,6 +149,13 @@ export function ChatRoomScreen({ chatId }: Props) {
     enabled: !!roomData,
     staleTime: STALE_TIMES.chatRooms.messages,
     gcTime: GC_TIMES.chatRooms.messages,
+  });
+
+  const { data: pendingChat = null } = useQuery({
+    queryKey: queryKeys.chatRooms.pending(chatId),
+    queryFn: () => null as PendingChatState | null,
+    staleTime: Infinity,
+    gcTime: GC_TIMES.chatRooms.pending,
   });
 
   const { data: chatRoomsData } = useQuery({
@@ -194,10 +203,7 @@ export function ChatRoomScreen({ chatId }: Props) {
   }, [chatId, messagesError, roomData]);
 
   useEffect(() => {
-    const hasAssistantStreaming = streamingMessages.some(
-      (msg) => msg.role === 'assistant' && msg.content.length > 0,
-    );
-    if (!isSending || hasAssistantStreaming) {
+    if (!pendingChat?.isSending) {
       setThinkingDotCount(1);
       return;
     }
@@ -207,7 +213,7 @@ export function ChatRoomScreen({ chatId }: Props) {
     }, 450);
 
     return () => clearInterval(intervalId);
-  }, [isSending, streamingMessages]);
+  }, [pendingChat]);
 
   const deleteMutation = useMutation({
     mutationFn: (roomId: string) => authRequest((token) => deleteChatRoom(token, roomId)),
@@ -217,6 +223,7 @@ export function ChatRoomScreen({ chatId }: Props) {
         queryKeys.chatRooms.all,
         (old) => old ? { ...old, rooms: old.rooms.filter((room) => room.roomId !== roomId) } : old,
       );
+      queryClient.removeQueries({ queryKey: queryKeys.chatRooms.pending(roomId) });
       if (roomId !== chatId) {
         queryClient.removeQueries({ queryKey: queryKeys.chatRooms.detail(roomId) });
         queryClient.removeQueries({ queryKey: queryKeys.chatRooms.messages(roomId) });
@@ -283,18 +290,20 @@ export function ChatRoomScreen({ chatId }: Props) {
 
   const handleSend = useCallback(
     async (message: string) => {
-      if (isSending) return;
+      const pendingKey = queryKeys.chatRooms.pending(chatId);
+      const currentPending = queryClient.getQueryData<PendingChatState>(pendingKey);
+      if (currentPending?.isSending) return;
 
-      setIsSending(true);
       const now = new Date().toISOString();
-      setStreamingMessages([
-        {
+      queryClient.setQueryData<PendingChatState>(pendingKey, {
+        isSending: true,
+        userMessage: {
           messageId: '__pending_user',
           role: 'user',
           content: message,
           createdAt: now,
         },
-      ]);
+      });
 
       try {
         const token = await getToken();
@@ -302,25 +311,18 @@ export function ChatRoomScreen({ chatId }: Props) {
 
         await sendChatMessageStream(token, chatId, { content: message }, {
           onChunk: (chunk) => {
-            setStreamingMessages((prev) => {
-              const assistant = prev.find((msg) => msg.messageId === '__streaming_ai');
-              if (assistant) {
-                return prev.map((msg) =>
-                  msg.messageId === '__streaming_ai'
-                    ? { ...msg, content: msg.content + chunk.content }
-                    : msg,
-                );
-              }
-
-              return [
-                ...prev,
-                {
+            queryClient.setQueryData<PendingChatState>(pendingKey, (old) => {
+              if (!old) return old;
+              const assistantMessage = old.assistantMessage
+                ? { ...old.assistantMessage, content: old.assistantMessage.content + chunk.content }
+                : {
                   messageId: '__streaming_ai',
-                  role: 'assistant',
+                  role: 'assistant' as const,
                   content: chunk.content,
                   createdAt: new Date().toISOString(),
-                },
-              ];
+                };
+
+              return { ...old, assistantMessage };
             });
             setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: false }), 0);
           },
@@ -333,16 +335,6 @@ export function ChatRoomScreen({ chatId }: Props) {
                 (old) => mergeDoneItinerary(old, done.itinerary!),
               );
             }
-
-            setConfirmedLocalMessages((prev) => {
-              const nextMessages: DisplayMessage[] = [
-                done.userMessage,
-                assistantMessage,
-              ];
-              const nextIds = new Set(nextMessages.map((msg) => msg.messageId));
-              return [...prev.filter((msg) => !nextIds.has(msg.messageId)), ...nextMessages];
-            });
-            setStreamingMessages([]);
 
             queryClient.setQueryData<ChatMessagesResponse>(
               queryKeys.chatRooms.messages(chatId),
@@ -366,6 +358,7 @@ export function ChatRoomScreen({ chatId }: Props) {
                 };
               },
             );
+            queryClient.setQueryData<PendingChatState | null>(pendingKey, null);
 
             queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.messages(chatId) });
             queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.all });
@@ -390,13 +383,11 @@ export function ChatRoomScreen({ chatId }: Props) {
           },
         });
       } catch (e) {
-        setStreamingMessages([]);
+        queryClient.setQueryData<PendingChatState | null>(pendingKey, null);
         Toast.show({ type: 'error', text1: getErrorMessage(e) });
-      } finally {
-        setIsSending(false);
       }
     },
-    [chatId, getToken, isSending, queryClient],
+    [chatId, getToken, queryClient],
   );
 
   const displayMessages = useMemo(() => {
@@ -406,13 +397,12 @@ export function ChatRoomScreen({ chatId }: Props) {
         ...message,
         actionResult: parseServerActionResult(message.actionResult),
       }));
-    const serverMessageIds = new Set(serverMessages.map((message) => message.messageId));
-    const localConfirmedMessages = confirmedLocalMessages.filter(
-      (message) => !serverMessageIds.has(message.messageId),
-    );
+    const pendingMessages = pendingChat
+      ? [pendingChat.userMessage, pendingChat.assistantMessage].filter(Boolean) as DisplayMessage[]
+      : [];
 
-    return [...serverMessages, ...localConfirmedMessages, ...streamingMessages];
-  }, [confirmedLocalMessages, messagesData, streamingMessages]);
+    return [...serverMessages, ...pendingMessages];
+  }, [messagesData, pendingChat]);
 
   useEffect(() => {
     if (messagesLoading) return;
@@ -478,10 +468,17 @@ export function ChatRoomScreen({ chatId }: Props) {
             ))
           )}
 
-          {isSending && !streamingMessages.some((msg) => msg.role === 'assistant' && msg.content.length > 0) && (
+          {pendingChat?.isSending && !pendingChat.assistantMessage?.content && (
             <ChatBubble
               variant="ai"
               message={`AI가 열심히 생각 중입니다${'.'.repeat(thinkingDotCount)}`}
+              timestamp={formatTimestamp(new Date().toISOString())}
+            />
+          )}
+          {pendingChat?.isSending && pendingChat.assistantMessage?.content && (
+            <ChatBubble
+              variant="ai"
+              message={`여행 일정을 표로 정리하는 중입니다${'.'.repeat(thinkingDotCount)}`}
               timestamp={formatTimestamp(new Date().toISOString())}
             />
           )}
@@ -490,6 +487,7 @@ export function ChatRoomScreen({ chatId }: Props) {
         <TypeMessageWindow
           onSend={handleSend}
           onFocus={() => scrollToLatestMessage(true)}
+          disabled={!!pendingChat?.isSending}
         />
       </KeyboardAvoidingView>
       <View style={{ height: bottomOffset }} />
