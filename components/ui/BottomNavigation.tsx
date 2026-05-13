@@ -72,7 +72,10 @@ export function BottomNavigation() {
           <Pressable
             key={route}
             style={styles.tab}
-            onPress={() => router.navigate(route as any)}
+            onPress={() => {
+              if (pathname === route) return;
+              router.replace(route as any);
+            }}
           >
             {({ pressed }) => (
               <View style={[styles.iconWrapper, pressed && { backgroundColor: colors.pressOverlay }]}>
