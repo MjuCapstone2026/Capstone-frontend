@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@clerk/clerk-expo';
 import axios from 'axios';
@@ -106,6 +107,8 @@ export function ChatRoomScreen({ chatId }: Props) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const scrollViewRef = useRef<ScrollView>(null);
+  const focusedRef = useRef(false);
+  const roomNameRef = useRef('채팅방');
   const insets = useSafeAreaInsets();
 
   const [drawerVisible, setDrawerVisible] = useState(false);
@@ -187,6 +190,22 @@ export function ChatRoomScreen({ chatId }: Props) {
     () => (itineraryDetail ? toTripInfoInitialValues(itineraryDetail) : undefined),
     [itineraryDetail],
   );
+
+  useFocusEffect(
+    useCallback(() => {
+      focusedRef.current = true;
+      return () => {
+        focusedRef.current = false;
+      };
+    }, []),
+  );
+
+  useEffect(() => {
+    roomNameRef.current =
+      roomData?.name ??
+      chatRoomsData?.rooms.find((room) => room.roomId === chatId)?.name ??
+      '채팅방';
+  }, [chatId, chatRoomsData, roomData]);
 
   useEffect(() => {
     if (!roomError) return;
@@ -379,6 +398,14 @@ export function ChatRoomScreen({ chatId }: Props) {
 
             if (done.reservation || done.cancel) {
               queryClient.invalidateQueries({ queryKey: queryKeys.reservations.all });
+            }
+
+            if (!focusedRef.current) {
+              Toast.show({
+                type: 'success',
+                text1: 'AI 응답이 완료되었습니다.',
+                text2: `${roomNameRef.current}에서 새 응답이 도착했습니다.`,
+              });
             }
           },
         });
