@@ -6,7 +6,7 @@ type Itinerary = {
   itineraryId: string;
   name: string;
   status: 'draft' | 'completed';
-  destination: string;
+  destinations: TripDestination[];
   totalDays: number;
   startDate: string;
 };

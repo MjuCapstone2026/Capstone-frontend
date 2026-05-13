@@ -13,6 +13,7 @@ import { queryKeys, STALE_TIMES } from '@/constants/queryKeys';
 import { BOTTOM_NAVIGATION } from '@/constants/layout';
 import { Typography } from '@/constants/theme';
 import { getErrorMessage } from '@/utils/getErrorMessage';
+import { formatTripDestinationCities } from '@/utils/tripInfo';
 import { TravelListTabBar } from '@/components/TravelListTabBar';
 import { TravelPlanCard } from '@/components/TravelPlanCard';
 import { ReservationCard } from '@/components/ReservationCard';
@@ -183,7 +184,7 @@ export function PlanListScreen() {
                 key={item.itineraryId}
                 title={item.name}
                 startDate={formatDate(item.startDate)}
-                destination={item.destination}
+                destination={formatTripDestinationCities(item.destinations)}
                 duration={formatDuration(item.totalDays)}
                 status={item.status === 'completed' ? 'completed' : 'upcoming'}
                 onPress={() =>

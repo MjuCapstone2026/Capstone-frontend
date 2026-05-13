@@ -22,7 +22,6 @@ type Itinerary = {
   itineraryId: string;
   name: string;
   status: 'draft' | 'completed';
-  destination: string;
   totalDays: number;
   startDate: string;
 };
