@@ -7,8 +7,7 @@ import Toast from 'react-native-toast-message';
 import { useTheme } from '@/hooks/useTheme';
 import { useApi } from '@/hooks/useApi';
 import { getErrorMessage, getDeleteChatRoomErrorMessage } from '@/utils/getErrorMessage';
-import { formatDateOnly } from '@/utils/dateOnly';
-import { toTripInfoInitialValues } from '@/utils/tripInfo';
+import { formatTripDestinations, toTripInfoInitialValues } from '@/utils/tripInfo';
 import { AlertMessages } from '@/constants/alerts';
 import { Header } from '@/components/ui/Header';
 import { HomeAIBanner } from '@/components/HomeAIBanner';
@@ -177,7 +176,6 @@ export function HomeScreen() {
       );
       queryClient.removeQueries({ queryKey: queryKeys.chatRooms.detail(roomId) });
       queryClient.removeQueries({ queryKey: queryKeys.chatRooms.messages(roomId) });
-      queryClient.removeQueries({ queryKey: queryKeys.chatRooms.messageResults(roomId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.itineraries.all });
       setSelectedChatId(null);
@@ -193,8 +191,7 @@ export function HomeScreen() {
     mutationFn: ({ info, itineraryId }: { info: TripInfo; itineraryId: string }) =>
       authRequest((token) =>
         updateItinerary(token, itineraryId, {
-          startDate: formatDateOnly(info.startDate),
-          endDate: formatDateOnly(info.endDate),
+          destinations: formatTripDestinations(info.destinations),
           budget: info.budget * 10000,
           adultCount: info.adults,
           childCount: info.children,

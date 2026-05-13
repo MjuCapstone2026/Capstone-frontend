@@ -7,8 +7,7 @@ import { useTheme } from '@/hooks/useTheme';
 import { useApi } from '@/hooks/useApi';
 import { Typography } from '@/constants/theme';
 import { getErrorMessage, getDeleteChatRoomErrorMessage } from '@/utils/getErrorMessage';
-import { formatDateOnly } from '@/utils/dateOnly';
-import { toTripInfoInitialValues } from '@/utils/tripInfo';
+import { formatTripDestinations, toTripInfoInitialValues } from '@/utils/tripInfo';
 import { queryKeys, STALE_TIMES, GC_TIMES } from '@/constants/queryKeys';
 import { AlertMessages } from '@/constants/alerts';
 import { getChatRooms, getChatRoom, createChatRoom, deleteChatRoom, updateChatRoomName } from '@/api/chatRooms';
@@ -100,7 +99,6 @@ export function NewChatScreen() {
       );
       queryClient.removeQueries({ queryKey: queryKeys.chatRooms.detail(roomId) });
       queryClient.removeQueries({ queryKey: queryKeys.chatRooms.messages(roomId) });
-      queryClient.removeQueries({ queryKey: queryKeys.chatRooms.messageResults(roomId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.itineraries.all });
       Toast.show({ type: 'success', text1: '채팅방이 삭제되었습니다.' });
@@ -136,8 +134,7 @@ export function NewChatScreen() {
     mutationFn: ({ info, itineraryId }: { info: TripInfo; itineraryId: string }) =>
       authRequest((token) =>
         updateItinerary(token, itineraryId, {
-          startDate: formatDateOnly(info.startDate),
-          endDate: formatDateOnly(info.endDate),
+          destinations: formatTripDestinations(info.destinations),
           budget: info.budget * 10000,
           adultCount: info.adults,
           childCount: info.children,
@@ -156,9 +153,7 @@ export function NewChatScreen() {
 
   const handleTripSubmit = (info: TripInfo) => {
     createMutation.mutate({
-      destination: info.destination,
-      startDate: formatDateOnly(info.startDate),
-      endDate: formatDateOnly(info.endDate),
+      destinations: formatTripDestinations(info.destinations),
       budget: info.budget * 10000,
       adultCount: info.adults,
       childCount: info.children,
@@ -224,14 +219,21 @@ export function NewChatScreen() {
           closeDrawerThen(() => setEditTripInfoVisible(true));
         }}
         onChatViewPlan={(chatId) => {
-          closeDrawerThen(() => {
-          // 캐시에서 itineraryId 조회 후 해당 일정으로 이동
-            const cached = queryClient.getQueryData<{ itineraryId?: string }>(
-              queryKeys.chatRooms.detail(String(chatId)),
-            );
-            if (cached?.itineraryId) {
-              router.push({ pathname: '/plan-list/[id]', params: { id: cached.itineraryId } });
-            } else {
+          closeDrawerThen(async () => {
+            try {
+              const room = await queryClient.fetchQuery({
+                queryKey: queryKeys.chatRooms.detail(String(chatId)),
+                queryFn: () => authRequest((token) => getChatRoom(token, String(chatId))),
+                staleTime: STALE_TIMES.chatRooms.detail,
+                gcTime: GC_TIMES.chatRooms.detail,
+              });
+              if (room.itineraryId) {
+                router.push({ pathname: '/plan-list/[id]', params: { id: room.itineraryId } });
+              } else {
+                router.navigate('/plan-list');
+              }
+            } catch (error) {
+              Toast.show({ type: 'error', text1: getErrorMessage(error) });
               router.navigate('/plan-list');
             }
           });

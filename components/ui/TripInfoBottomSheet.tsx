@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BorderRadius, Elevation, Typography } from '@/constants/theme';
 import { useTheme } from '@/hooks/useTheme';
 import IcChevronDown from '@/assets/icons/ic_chevron_down.svg';
+import IcDelete from '@/assets/icons/ic_delete.svg';
 import IcPlan from '@/assets/icons/ic_plan.svg';
 import IcSearch from '@/assets/icons/ic_search.svg';
 
@@ -36,12 +37,24 @@ const AGE_OPTIONS = [
   '만 12세',
 ] as const;
 const MAX_PEOPLE_COUNT = 15;
+const MAX_DESTINATION_COUNT = 3;
 type AgeOption = (typeof AGE_OPTIONS)[number];
 
-export type TripInfo = {
+export type TripDestination = {
   destination: string;
   startDate: Date;
   endDate: Date;
+};
+
+type TripDestinationDraft = {
+  destination: string;
+  selectedDestination: string;
+  startDate: Date | null;
+  endDate: Date | null;
+};
+
+export type TripInfo = {
+  destinations: TripDestination[];
   adults: number;
   children: number;
   childAges: AgeOption[];
@@ -100,6 +113,12 @@ function isSameDay(a: Date, b: Date): boolean {
   );
 }
 
+function compareDateOnly(a: Date, b: Date): number {
+  const aTime = new Date(a.getFullYear(), a.getMonth(), a.getDate()).getTime();
+  const bTime = new Date(b.getFullYear(), b.getMonth(), b.getDate()).getTime();
+  return aTime - bTime;
+}
+
 function isBetween(date: Date, start: Date, end: Date): boolean {
   const dateTime = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
   const startTime = new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime();
@@ -115,6 +134,27 @@ function normalizeBudget(value?: number): string {
   return value ? String(value) : '';
 }
 
+function createEmptyDestination(): TripDestinationDraft {
+  return {
+    destination: '',
+    selectedDestination: '',
+    startDate: null,
+    endDate: null,
+  };
+}
+
+function normalizeDestinations(values?: (TripDestinationDraft | TripDestination)[]): TripDestinationDraft[] {
+  const destinations = values
+    ?.map(value => ({
+      destination: value.destination.trim(),
+      selectedDestination: ('selectedDestination' in value ? value.selectedDestination.trim() : '') || value.destination.trim(),
+      startDate: value.startDate,
+      endDate: value.endDate,
+    }))
+    .filter(value => value.destination || value.startDate || value.endDate) ?? [];
+  return destinations.length > 0 ? destinations.slice(0, MAX_DESTINATION_COUNT) : [createEmptyDestination()];
+}
+
 function isSameDateValue(a: Date | null | undefined, b: Date | null | undefined): boolean {
   if (!a && !b) return true;
   if (!a || !b) return false;
@@ -124,6 +164,18 @@ function isSameDateValue(a: Date | null | undefined, b: Date | null | undefined)
 function areSameAges(a: (AgeOption | '')[], b: (AgeOption | '')[]): boolean {
   if (a.length !== b.length) return false;
   return a.every((value, index) => value === b[index]);
+}
+
+function areSameDestinations(a: TripDestinationDraft[], b: TripDestinationDraft[]): boolean {
+  const normalizedA = normalizeDestinations(a);
+  const normalizedB = normalizeDestinations(b);
+  if (normalizedA.length !== normalizedB.length) return false;
+  return normalizedA.every((value, index) => (
+    value.destination.trim() === normalizedB[index].destination.trim() &&
+    value.selectedDestination.trim() === normalizedB[index].selectedDestination.trim() &&
+    isSameDateValue(value.startDate, normalizedB[index].startDate) &&
+    isSameDateValue(value.endDate, normalizedB[index].endDate)
+  ));
 }
 
 function Calendar({ startDate, endDate, month, onDayPress, onPrevMonth, onNextMonth }: CalendarProps) {
@@ -288,7 +340,7 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
   const insets = useSafeAreaInsets();
   const { height: screenHeight } = useWindowDimensions();
   const scrollViewRef = useRef<ScrollView>(null);
-  const destinationInputRef = useRef<TextInput>(null);
+  const destinationInputRefs = useRef<(TextInput | null)[]>([]);
 
   const SNAP_HALF = useMemo(() => screenHeight * 0.60, [screenHeight]);
   const SNAP_FULL = useMemo(() => screenHeight * 0.92, [screenHeight]);
@@ -300,20 +352,18 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
-  const [destination, setDestination] = useState('');
-  const [startDate, setStartDate] = useState<Date | null>(null);
-  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [destinations, setDestinations] = useState<TripDestinationDraft[]>([createEmptyDestination()]);
   const [adults, setAdults] = useState(1);
   const [children, setChildren] = useState(0);
   const [childAges, setChildAges] = useState<(AgeOption | '')[]>([]);
   const [budget, setBudget] = useState('');
-  const [calendarExpanded, setCalendarExpanded] = useState(false);
+  const [activeCalendarIndex, setActiveCalendarIndex] = useState<number | null>(null);
   const [peopleExpanded, setPeopleExpanded] = useState(false);
   const [activeAgeDropdown, setActiveAgeDropdown] = useState<number | null>(null);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [budgetFocused, setBudgetFocused] = useState(false);
-  const [destinationFocused, setDestinationFocused] = useState(false);
+  const [focusedDestinationIndex, setFocusedDestinationIndex] = useState<number | null>(null);
   const [placePredictions, setPlacePredictions] = useState<PlacePrediction[]>([]);
   const [placesLoading, setPlacesLoading] = useState(false);
 
@@ -346,29 +396,27 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
     if (!visible) return;
 
     const nextChildren = initialValues?.children ?? 0;
-    setDestination(initialValues?.destination ?? '');
-    setStartDate(initialValues?.startDate ?? null);
-    setEndDate(initialValues?.endDate ?? null);
+    setDestinations(normalizeDestinations(initialValues?.destinations));
     setAdults(initialValues?.adults ?? 1);
     setChildren(nextChildren);
     setChildAges(normalizeAges(nextChildren, initialValues?.childAges));
     setBudget(initialValues?.budget ? String(initialValues.budget) : '');
-    setCalendarExpanded(false);
+    setActiveCalendarIndex(null);
     setPeopleExpanded(false);
     setActiveAgeDropdown(null);
-    setCalendarMonth(initialValues?.startDate ?? new Date());
-    setDestinationFocused(false);
+    setCalendarMonth(initialValues?.destinations?.[0]?.startDate ?? new Date());
+    setFocusedDestinationIndex(null);
     setPlacePredictions([]);
   }, [visible, initialValues]);
 
   useEffect(() => {
-    if (!visible || mode !== 'create' || !destinationFocused) {
+    if (!visible || focusedDestinationIndex === null) {
       setPlacesLoading(false);
       setPlacePredictions([]);
       return;
     }
 
-    const query = destination.trim();
+    const query = destinations[focusedDestinationIndex]?.destination.trim() ?? '';
     if (!GOOGLE_MAPS_API_KEY || query.length < 2) {
       setPlacesLoading(false);
       setPlacePredictions([]);
@@ -406,7 +454,7 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
       controller.abort();
       clearTimeout(timerId);
     };
-  }, [destination, destinationFocused, mode, visible]);
+  }, [destinations, focusedDestinationIndex, visible]);
 
   const handleClose = useCallback(() => {
     onCloseRef.current();
@@ -495,57 +543,117 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
 
   const allChildAgesFilled =
     children === 0 || (childAges.length === children && childAges.every(age => age !== ''));
+  const completedDestinations = destinations
+    .map(value => ({
+      destination: value.destination.trim(),
+      selectedDestination: value.selectedDestination.trim(),
+      startDate: value.startDate,
+      endDate: value.endDate,
+    }))
+    .filter((value): value is TripDestination & { selectedDestination: string } => (
+      value.destination !== '' &&
+      value.selectedDestination === value.destination &&
+      value.startDate !== null &&
+      value.endDate !== null
+    ));
+  const initialDestinations = normalizeDestinations(initialValues?.destinations);
   const initialChildren = initialValues?.children ?? 0;
   const initialChildAges = normalizeAges(initialChildren, initialValues?.childAges);
   const hasChanges =
     mode === 'create' ||
-    destination.trim() !== (initialValues?.destination ?? '').trim() ||
-    !isSameDateValue(startDate, initialValues?.startDate ?? null) ||
-    !isSameDateValue(endDate, initialValues?.endDate ?? null) ||
+    !areSameDestinations(destinations, initialDestinations) ||
     adults !== (initialValues?.adults ?? 1) ||
     children !== initialChildren ||
     !areSameAges(childAges, initialChildAges) ||
     budget !== normalizeBudget(initialValues?.budget);
-  const isValid =
-    destination.trim() !== '' &&
-    startDate !== null &&
-    endDate !== null &&
-    adults >= 1 &&
-    allChildAgesFilled &&
-    Number(budget) > 0 &&
-    hasChanges;
+  const validationMessage = (() => {
+    const emptyDestinationIndex = destinations.findIndex(value => value.destination.trim() === '');
+    if (emptyDestinationIndex >= 0) return `여행지${emptyDestinationIndex + 1}을 입력해주세요.`;
 
-  const dateLabel =
-    startDate && endDate
-      ? `${formatDate(startDate)} ~ ${formatDate(endDate)}`
-      : startDate
-        ? `${formatDate(startDate)} ~ 종료일 선택`
-        : '날짜를 선택해주세요';
+    const unselectedDestinationIndex = destinations.findIndex(value => (
+      value.selectedDestination.trim() !== value.destination.trim()
+    ));
+    if (unselectedDestinationIndex >= 0) return `여행지${unselectedDestinationIndex + 1}을 검색 결과에서 선택해주세요.`;
+
+    const emptyDateIndex = destinations.findIndex(value => !value.startDate || !value.endDate);
+    if (emptyDateIndex >= 0) return `여행지${emptyDateIndex + 1}의 날짜를 선택해주세요.`;
+
+    for (let index = 1; index < completedDestinations.length; index += 1) {
+      const previous = completedDestinations[index - 1];
+      const current = completedDestinations[index];
+      const dateDiff = compareDateOnly(current.startDate, previous.endDate);
+
+      if (dateDiff > 0) {
+        return `여행지${index} 종료일과 여행지${index + 1} 시작일 사이에 빈 날짜가 있어요.`;
+      }
+
+      if (dateDiff < 0) {
+        return `여행지${index}과 여행지${index + 1}의 날짜가 겹쳐요.`;
+      }
+    }
+
+    if (!allChildAgesFilled) return '아동 나이를 모두 선택해주세요.';
+    if (Number(budget) <= 0) return '예산을 입력해주세요.';
+    if (!hasChanges) return '변경된 내용이 없습니다.';
+
+    return '';
+  })();
+  const isValid = validationMessage === '';
+
   const peopleLabel = `성인 ${adults}명${children > 0 ? `, 아동 ${children}명` : ''}`;
   const buttonLabel = mode === 'create' ? '채팅방 생성하기' : '수정하기';
   const footerBottom = Math.max(insets.bottom, 16);
   const contentBottomPadding = budgetFocused ? keyboardHeight + footerBottom + 24 : 24;
 
-  const handleDayPress = (day: Date) => {
-    if (!startDate || endDate) {
-      setStartDate(day);
-      setEndDate(null);
+  const getDateLabel = (destination: TripDestinationDraft) => {
+    if (destination.startDate && destination.endDate) {
+      return `${formatDate(destination.startDate)} ~ ${formatDate(destination.endDate)}`;
+    }
+
+    if (destination.startDate) {
+      return `${formatDate(destination.startDate)} ~ 종료일 선택`;
+    }
+
+    return '날짜를 선택해주세요';
+  };
+
+  const handleDayPress = (index: number, day: Date) => {
+    const selectedDestination = destinations[index];
+    if (!selectedDestination) return;
+
+    if (!selectedDestination.startDate || selectedDestination.endDate) {
+      setDestinations(prev => prev.map((destination, destinationIndex) => (
+        destinationIndex === index
+          ? { ...destination, startDate: day, endDate: null }
+          : destination
+      )));
       return;
     }
 
-    if (isSameDay(day, startDate)) {
-      setStartDate(null);
+    if (isSameDay(day, selectedDestination.startDate)) {
+      setDestinations(prev => prev.map((destination, destinationIndex) => (
+        destinationIndex === index
+          ? { ...destination, startDate: null, endDate: null }
+          : destination
+      )));
       return;
     }
 
-    if (day < startDate) {
-      setStartDate(day);
-      setEndDate(null);
+    if (day < selectedDestination.startDate) {
+      setDestinations(prev => prev.map((destination, destinationIndex) => (
+        destinationIndex === index
+          ? { ...destination, startDate: day, endDate: null }
+          : destination
+      )));
       return;
     }
 
-    setEndDate(day);
-    setCalendarExpanded(false);
+    setDestinations(prev => prev.map((destination, destinationIndex) => (
+      destinationIndex === index
+        ? { ...destination, endDate: day }
+        : destination
+    )));
+    setActiveCalendarIndex(null);
   };
 
   const updateChildren = (count: number) => {
@@ -555,13 +663,58 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
     if (nextChildren === 0) setActiveAgeDropdown(null);
   };
 
+  const updateDestination = (index: number, value: string) => {
+    setDestinations(prev => prev.map((destination, destinationIndex) => (
+      destinationIndex === index
+        ? { ...destination, destination: value, selectedDestination: '' }
+        : destination
+    )));
+  };
+
+  const selectDestination = (index: number, value: string) => {
+    setDestinations(prev => prev.map((destination, destinationIndex) => (
+      destinationIndex === index
+        ? { ...destination, destination: value, selectedDestination: value }
+        : destination
+    )));
+  };
+
+  const addDestination = () => {
+    if (destinations.length >= MAX_DESTINATION_COUNT) return;
+
+    setDestinations(prev => [...prev, createEmptyDestination()]);
+    requestAnimationFrame(() => {
+      const nextIndex = destinations.length;
+      destinationInputRefs.current[nextIndex]?.focus();
+    });
+  };
+
+  const removeDestination = (index: number) => {
+    if (destinations.length <= 1) return;
+
+    setDestinations(prev => prev.filter((_, destinationIndex) => destinationIndex !== index));
+    setActiveCalendarIndex(current => {
+      if (current === null) return null;
+      if (current === index) return null;
+      return current > index ? current - 1 : current;
+    });
+    setFocusedDestinationIndex(current => {
+      if (current === null) return null;
+      if (current === index) return null;
+      return current > index ? current - 1 : current;
+    });
+    setPlacePredictions([]);
+  };
+
   const handleSubmit = () => {
-    if (!isValid || !startDate || !endDate) return;
+    if (!isValid) return;
 
     onSubmit({
-      destination: destination.trim(),
-      startDate,
-      endDate,
+      destinations: completedDestinations.map(destination => ({
+        destination: destination.destination,
+        startDate: destination.startDate,
+        endDate: destination.endDate,
+      })),
       adults,
       children,
       childAges: childAges as AgeOption[],
@@ -570,8 +723,10 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
   };
 
   const handleSelectPlace = (place: PlacePrediction) => {
-    setDestination(place.description);
-    setDestinationFocused(false);
+    if (focusedDestinationIndex !== null) {
+      selectDestination(focusedDestinationIndex, place.description);
+    }
+    setFocusedDestinationIndex(null);
     setPlacePredictions([]);
     Keyboard.dismiss();
   };
@@ -609,103 +764,140 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
               ) : null}
             </View>
             <View style={styles.fieldGroup}>
-              <Text style={[styles.fieldLabel, { color: colors.textSub }]}>여행지</Text>
-              <View style={[styles.inputBox, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}>
-                <TextInput
-                    ref={destinationInputRef}
-                    value={destination}
-                    onChangeText={setDestination}
-                    onFocus={() => setDestinationFocused(true)}
-                    editable={mode === 'create'}
-                    placeholder="여행지를 입력해주세요"
-                    placeholderTextColor={colors.textDisabled}
-                    style={[styles.textInput, { color: mode === 'create' ? colors.textTitle : colors.textDisabled }]}
-                  />
-                  <Pressable
-                    onPress={() => {
-                      if (mode === 'create') destinationInputRef.current?.focus();
-                    }}
-                    style={styles.inputIconButton}
-                    hitSlop={8}
-                  >
-                    <IcSearch
-                      width={20}
-                      height={20}
-                      color={mode === 'create' && destination ? colors.textTitle : colors.textCaption}
-                    />
-                  </Pressable>
-              </View>
-              {mode === 'create' && destinationFocused && (placesLoading || placePredictions.length > 0) ? (
-                <View style={[styles.placePanel, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}>
-                  {placesLoading ? (
-                    <Text style={[styles.placeMetaText, { color: colors.textCaption }]}>검색 중</Text>
-                  ) : (
-                    placePredictions.map((place, index) => (
+              <View style={styles.destinationList}>
+                {destinations.map((destination, index) => (
+                  <View key={index} style={styles.destinationItem}>
+                    <View style={styles.destinationHeader}>
+                      <Text style={[styles.fieldLabel, { color: colors.textSub }]}>여행지{index + 1}</Text>
+                      {destinations.length > 1 ? (
+                        <Pressable
+                          onPress={() => removeDestination(index)}
+                          style={styles.destinationDeleteButton}
+                          hitSlop={8}
+                        >
+                          {({ pressed }) => (
+                            <>
+                              <IcDelete width={18} height={18} color={colors.textCaption} />
+                              {pressed && (
+                                <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay, borderRadius: BorderRadius.full }]} />
+                              )}
+                            </>
+                          )}
+                        </Pressable>
+                      ) : null}
+                    </View>
+                    <View style={[styles.inputBox, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}>
+                      <TextInput
+                        ref={(input) => {
+                          destinationInputRefs.current[index] = input;
+                        }}
+                        value={destination.destination}
+                        onChangeText={(value) => updateDestination(index, value)}
+                        onFocus={() => setFocusedDestinationIndex(index)}
+                        placeholder={`여행지${index + 1}을 입력해주세요`}
+                        placeholderTextColor={colors.textDisabled}
+                        style={[styles.textInput, { color: colors.textTitle }]}
+                      />
                       <Pressable
-                        key={place.place_id}
-                        onPress={() => handleSelectPlace(place)}
-                        style={[
-                          styles.placeOption,
-                          index < placePredictions.length - 1 && { borderBottomColor: colors.divider, borderBottomWidth: 1 },
-                        ]}
+                        onPress={() => destinationInputRefs.current[index]?.focus()}
+                        style={styles.inputIconButton}
+                        hitSlop={8}
                       >
-                        {({ pressed }) => (
-                          <>
-                            <Text style={[styles.placeMainText, { color: colors.textTitle }]} numberOfLines={1}>
-                              {place.structured_formatting?.main_text ?? place.description}
-                            </Text>
-                            {place.structured_formatting?.secondary_text ? (
-                              <Text style={[styles.placeSubText, { color: colors.textCaption }]} numberOfLines={1}>
-                                {place.structured_formatting.secondary_text}
-                              </Text>
-                            ) : null}
-                            {pressed && (
-                              <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay }]} />
-                            )}
-                          </>
-                        )}
+                        <IcSearch
+                          width={20}
+                          height={20}
+                          color={destination.destination ? colors.textTitle : colors.textCaption}
+                        />
                       </Pressable>
-                    ))
-                  )}
-                </View>
-              ) : null}
-            </View>
-
-            <View style={styles.fieldGroup}>
-              <Text style={[styles.fieldLabel, { color: colors.textSub }]}>날짜</Text>
-              <Pressable
-                onPress={() => {
-                  Keyboard.dismiss();
-                  setDestinationFocused(false);
-                  setPlacePredictions([]);
-                  setCalendarExpanded(value => !value);
-                  setPeopleExpanded(false);
-                  setActiveAgeDropdown(null);
-                }}
-                style={[styles.inputBox, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}
-              >
-                {({ pressed }) => (
-                  <>
-                    <Text style={[styles.inputValue, { color: startDate ? colors.textTitle : colors.textDisabled }]}>
-                      {dateLabel}
-                    </Text>
-                    <IcPlan width={20} height={20} color={startDate ? colors.textTitle : colors.textCaption} />
-                    {pressed && (
-                      <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay, borderRadius: BorderRadius.lg }]} />
+                    </View>
+                    {focusedDestinationIndex === index && (placesLoading || placePredictions.length > 0) ? (
+                      <View style={[styles.placePanel, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}>
+                        {placesLoading ? (
+                          <Text style={[styles.placeMetaText, { color: colors.textCaption }]}>검색 중</Text>
+                        ) : (
+                          placePredictions.map((place, placeIndex) => (
+                            <Pressable
+                              key={place.place_id}
+                              onPress={() => handleSelectPlace(place)}
+                              style={[
+                                styles.placeOption,
+                                placeIndex < placePredictions.length - 1 && { borderBottomColor: colors.divider, borderBottomWidth: 1 },
+                              ]}
+                            >
+                              {({ pressed }) => (
+                                <>
+                                  <Text style={[styles.placeMainText, { color: colors.textTitle }]} numberOfLines={1}>
+                                    {place.structured_formatting?.main_text ?? place.description}
+                                  </Text>
+                                  {place.structured_formatting?.secondary_text ? (
+                                    <Text style={[styles.placeSubText, { color: colors.textCaption }]} numberOfLines={1}>
+                                      {place.structured_formatting.secondary_text}
+                                    </Text>
+                                  ) : null}
+                                  {pressed && (
+                                    <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay }]} />
+                                  )}
+                                </>
+                              )}
+                            </Pressable>
+                          ))
+                        )}
+                      </View>
+                    ) : null}
+                    <Pressable
+                      onPress={() => {
+                        Keyboard.dismiss();
+                        setFocusedDestinationIndex(null);
+                        setPlacePredictions([]);
+                        setActiveCalendarIndex(value => value === index ? null : index);
+                        setCalendarMonth(destination.startDate ?? new Date());
+                        setPeopleExpanded(false);
+                        setActiveAgeDropdown(null);
+                      }}
+                      style={[styles.inputBox, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}
+                    >
+                      {({ pressed }) => (
+                        <>
+                          <Text style={[styles.inputValue, { color: destination.startDate ? colors.textTitle : colors.textDisabled }]}>
+                            {getDateLabel(destination)}
+                          </Text>
+                          <IcPlan width={20} height={20} color={destination.startDate ? colors.textTitle : colors.textCaption} />
+                          {pressed && (
+                            <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay, borderRadius: BorderRadius.lg }]} />
+                          )}
+                        </>
+                      )}
+                    </Pressable>
+                    {activeCalendarIndex === index && (
+                      <Calendar
+                        startDate={destination.startDate}
+                        endDate={destination.endDate}
+                        month={calendarMonth}
+                        onDayPress={(day) => handleDayPress(index, day)}
+                        onPrevMonth={() => setCalendarMonth(value => new Date(value.getFullYear(), value.getMonth() - 1, 1))}
+                        onNextMonth={() => setCalendarMonth(value => new Date(value.getFullYear(), value.getMonth() + 1, 1))}
+                      />
                     )}
-                  </>
-                )}
-              </Pressable>
-              {calendarExpanded && (
-                <Calendar
-                  startDate={startDate}
-                  endDate={endDate}
-                  month={calendarMonth}
-                  onDayPress={handleDayPress}
-                  onPrevMonth={() => setCalendarMonth(value => new Date(value.getFullYear(), value.getMonth() - 1, 1))}
-                  onNextMonth={() => setCalendarMonth(value => new Date(value.getFullYear(), value.getMonth() + 1, 1))}
-                />
-              )}
+                  </View>
+                ))}
+              </View>
+              {destinations.length < MAX_DESTINATION_COUNT ? (
+                <Pressable
+                  onPress={addDestination}
+                  style={[styles.addDestinationButton, { backgroundColor: colors.primaryLight }]}
+                >
+                  {({ pressed }) => (
+                    <>
+                      <Text style={[styles.addDestinationText, { color: scheme === 'light' ? colors.cardBg : colors.textTitle }]}>
+                        + 여행지 추가
+                      </Text>
+                      {pressed && (
+                        <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.pressOverlay, borderRadius: BorderRadius.lg }]} />
+                      )}
+                    </>
+                  )}
+                </Pressable>
+              ) : null}
             </View>
 
             <View style={styles.fieldGroup}>
@@ -713,10 +905,10 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
               <Pressable
                 onPress={() => {
                   Keyboard.dismiss();
-                  setDestinationFocused(false);
+                  setFocusedDestinationIndex(null);
                   setPlacePredictions([]);
                   setPeopleExpanded(value => !value);
-                  setCalendarExpanded(false);
+                  setActiveCalendarIndex(null);
                   setActiveAgeDropdown(null);
                 }}
                 style={[styles.inputBox, { backgroundColor: colors.cardBg, borderColor: colors.divider }, Elevation[scheme][4]]}
@@ -833,6 +1025,11 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
             </View>
 
             <View style={[styles.footer, { paddingBottom: footerBottom }]}>
+              {validationMessage ? (
+                <Text style={[styles.validationText, { color: colors.danger }]}>
+                  * {validationMessage}
+                </Text>
+              ) : null}
               <Pressable
                 onPress={handleSubmit}
                 disabled={!isValid}
@@ -914,6 +1111,36 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     ...Typography['heading-sm'],
+  },
+  destinationHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  destinationDeleteButton: {
+    alignItems: 'center',
+    borderRadius: BorderRadius.full,
+    height: 28,
+    justifyContent: 'center',
+    overflow: 'hidden',
+    width: 28,
+  },
+  destinationList: {
+    gap: 10,
+  },
+  destinationItem: {
+    gap: 8,
+  },
+  addDestinationButton: {
+    alignItems: 'center',
+    borderRadius: BorderRadius.lg,
+    height: 46,
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  addDestinationText: {
+    ...Typography['body-md'],
+    fontFamily: 'Pretendard-Bold',
   },
   inputBox: {
     alignItems: 'center',
@@ -1175,6 +1402,11 @@ const styles = StyleSheet.create({
   footer: {
     alignItems: 'center',
     paddingTop: 0,
+  },
+  validationText: {
+    ...Typography['body-sm'],
+    alignSelf: 'stretch',
+    marginBottom: 10,
   },
   primaryButton: {
     alignItems: 'center',
