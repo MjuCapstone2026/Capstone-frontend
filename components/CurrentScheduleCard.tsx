@@ -40,15 +40,18 @@ export function CurrentScheduleCard({ title, startTime, endTime, location, label
       </Text>
 
       <View style={styles.meta}>
-        <IcClock width={14} height={14} color={surfaceColor} />
-        <Text style={[styles.metaText, { color: surfaceColor }]}>
-          {startTime} ~ {endTime}
-        </Text>
-        <Text style={[styles.dot, { color: surfaceColor }]}>•</Text>
-        <IcPin width={14} height={14} color={surfaceColor} />
-        <Text style={[styles.metaText, styles.locationText, { color: surfaceColor }]}>
-          {location}
-        </Text>
+        <View style={styles.metaRow}>
+          <IcClock width={14} height={14} color={surfaceColor} />
+          <Text style={[styles.metaText, { color: surfaceColor }]}>
+            {startTime} ~ {endTime}
+          </Text>
+        </View>
+        <View style={styles.metaRow}>
+          <IcPin width={14} height={14} color={surfaceColor} />
+          <Text style={[styles.metaText, { color: surfaceColor }]}>
+            {location}
+          </Text>
+        </View>
       </View>
 
       <Pressable
@@ -87,19 +90,17 @@ const styles = StyleSheet.create({
     ...Typography['heading-md'],
   },
   meta: {
+    gap: 4,
+  },
+  metaRow: {
+    alignItems: 'flex-start',
     flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
     gap: 4,
   },
   metaText: {
     ...Typography['body-md'],
-  },
-  locationText: {
+    flex: 1,
     flexShrink: 1,
-  },
-  dot: {
-    ...Typography['body-md'],
   },
   button: {
     flexDirection: 'row',
