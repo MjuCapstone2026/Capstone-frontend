@@ -32,7 +32,7 @@ type FlightProps = CommonProps & {
   type: 'flight';
   departureCode: string;
   arrivalCode: string;
-  flightNumber: string;
+  flightNumber?: string;
   duration: string;
   departureTime: string;
   arrivalTime: string;
@@ -100,7 +100,9 @@ function CardBody({
             <Text style={[styles.caption, { color: captionColor }]}>{props.departureTime}</Text>
           </View>
           <View style={styles.flightCenter}>
-            <Text style={[styles.label, { color: captionColor }]}>{props.flightNumber}</Text>
+            {props.flightNumber ? (
+              <Text style={[styles.label, { color: captionColor }]}>{props.flightNumber}</Text>
+            ) : null}
             <View style={styles.flightArrowRow}>
               <View style={[styles.flightLine, { backgroundColor: captionColor }]} />
               <View style={[styles.flightArrowHead, { borderLeftColor: captionColor }]} />

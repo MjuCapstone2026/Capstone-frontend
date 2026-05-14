@@ -4,16 +4,17 @@ const BASE = '/api/v1/reservations';
 
 type FlightDetail = {
   airline: string;
-  flight_no: string;
-  departure: { airport: string; datetime: string };
-  arrival: { airport: string; datetime: string };
-  seat_class: string;
-  passengers: { name: string; passport: string }[];
+  flight_no?: string;
+  departure: string;
+  arrival: string;
+  departing_at: string;
+  arriving_at: string;
+  stops: number;
 };
 
 type AccommodationDetail = {
-  hotel_name: string;
-  room_type: string;
+  name: string;
+  rooms: number;
   check_in: string;
   check_out: string;
   guests: number;
@@ -33,15 +34,13 @@ type CreateReservationRequest =
   | (ReservationBaseRequest & { type: 'flight'; detail: FlightDetail })
   | (ReservationBaseRequest & { type: 'accommodation'; detail: AccommodationDetail });
 
-type Reservation = {
+type ReservationBase = {
   reservationId: string;
   itineraryId: string;
-  type: 'flight' | 'accommodation';
   status: 'confirmed' | 'changed' | 'cancelled';
   bookedBy: 'user' | 'ai';
   bookingUrl: string | null;
   externalRefId: string | null;
-  detail: FlightDetail | AccommodationDetail;
   totalPrice: number | null;
   currency: string | null;
   reservedAt: string;
@@ -49,6 +48,10 @@ type Reservation = {
   createdAt: string;
   updatedAt: string;
 };
+
+type Reservation =
+  | (ReservationBase & { type: 'flight'; detail: FlightDetail })
+  | (ReservationBase & { type: 'accommodation'; detail: AccommodationDetail });
 
 type ReservationsParams = {
   type?: 'flight' | 'accommodation';
