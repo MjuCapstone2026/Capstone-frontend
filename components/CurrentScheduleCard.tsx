@@ -6,6 +6,9 @@ import IcNavigation from '@/assets/icons/ic_navigation.svg';
 import IcClock from '@/assets/icons/ic_clock.svg';
 import IcPin from '@/assets/icons/ic_pin.svg';
 
+const ICON_TEXT_LINE_HEIGHT = 18;
+const ICON_TOP_OFFSET = -1;
+
 type Props = {
   title: string;
   startTime: string;
@@ -31,7 +34,9 @@ export function CurrentScheduleCard({ title, startTime, endTime, location, label
   return (
     <View style={[styles.card, { backgroundColor: colors.primary }, Elevation[scheme][2]]}>
       <View style={styles.label}>
-        <IcNavigation width={16} height={16} color={surfaceColor} />
+        <View style={styles.labelIconFrame}>
+          <IcNavigation width={16} height={16} color={surfaceColor} />
+        </View>
         <Text style={[styles.labelText, { color: surfaceColor }]}>{label}</Text>
       </View>
 
@@ -41,13 +46,17 @@ export function CurrentScheduleCard({ title, startTime, endTime, location, label
 
       <View style={styles.meta}>
         <View style={styles.metaRow}>
-          <IcClock width={14} height={14} color={surfaceColor} />
+          <View style={styles.metaIconFrame}>
+            <IcClock width={14} height={14} color={surfaceColor} />
+          </View>
           <Text style={[styles.metaText, { color: surfaceColor }]}>
             {startTime} ~ {endTime}
           </Text>
         </View>
         <View style={styles.metaRow}>
-          <IcPin width={14} height={14} color={surfaceColor} />
+          <View style={styles.metaIconFrame}>
+            <IcPin width={14} height={14} color={surfaceColor} />
+          </View>
           <Text style={[styles.metaText, { color: surfaceColor }]}>
             {location}
           </Text>
@@ -80,11 +89,19 @@ const styles = StyleSheet.create({
   },
   label: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 6,
+  },
+  labelIconFrame: {
+    alignItems: 'center',
+    height: ICON_TEXT_LINE_HEIGHT,
+    justifyContent: 'center',
+    marginTop: ICON_TOP_OFFSET,
   },
   labelText: {
     ...Typography['body-md'],
+    includeFontPadding: false,
+    lineHeight: ICON_TEXT_LINE_HEIGHT,
   },
   title: {
     ...Typography['heading-md'],
@@ -97,10 +114,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 4,
   },
+  metaIconFrame: {
+    alignItems: 'center',
+    height: ICON_TEXT_LINE_HEIGHT,
+    justifyContent: 'center',
+    marginTop: ICON_TOP_OFFSET,
+  },
   metaText: {
     ...Typography['body-md'],
     flex: 1,
     flexShrink: 1,
+    includeFontPadding: false,
+    lineHeight: ICON_TEXT_LINE_HEIGHT,
   },
   button: {
     flexDirection: 'row',

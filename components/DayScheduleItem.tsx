@@ -6,6 +6,9 @@ import IcPin from '@/assets/icons/ic_pin.svg';
 import { CheckButton } from '@/components/ui/CheckButton';
 import { ScheduleStatusBadge } from '@/components/ui/ScheduleStatusBadge';
 
+const ICON_TEXT_LINE_HEIGHT = 18;
+const ICON_TOP_OFFSET = -2;
+
 type Status = 'upcoming' | 'completed';
 
 type Props = {
@@ -49,7 +52,9 @@ export function DayScheduleItem({ title, startTime, endTime, location, memo, sta
       </Text>
 
       <View style={styles.locationRow}>
-        <IcPin width={14} height={14} color={colors.textCaption} />
+        <View style={styles.locationIconFrame}>
+          <IcPin width={14} height={14} color={colors.textCaption} />
+        </View>
         <Text style={[styles.locationText, { color: colors.textCaption }]}>
           {location}
         </Text>
@@ -95,9 +100,17 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: 4,
   },
+  locationIconFrame: {
+    alignItems: 'center',
+    height: ICON_TEXT_LINE_HEIGHT,
+    justifyContent: 'center',
+    marginTop: ICON_TOP_OFFSET,
+  },
   locationText: {
     ...Typography['body-md'],
     flex: 1,
+    includeFontPadding: false,
+    lineHeight: ICON_TEXT_LINE_HEIGHT,
   },
   memo: {
     ...Typography['body-md'],
