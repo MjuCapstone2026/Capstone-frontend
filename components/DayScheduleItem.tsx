@@ -44,13 +44,13 @@ export function DayScheduleItem({ title, startTime, endTime, location, memo, sta
         <CheckButton checked={isCompleted} onToggle={onToggle} />
       </View>
 
-      <Text style={[styles.title, { color: colors.textTitle }]} numberOfLines={1}>
+      <Text style={[styles.title, { color: colors.textTitle }]}>
         {title}
       </Text>
 
       <View style={styles.locationRow}>
         <IcPin width={14} height={14} color={colors.textCaption} />
-        <Text style={[styles.locationText, { color: colors.textCaption }]} numberOfLines={1}>
+        <Text style={[styles.locationText, { color: colors.textCaption }]}>
           {location}
         </Text>
       </View>
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   },
   locationRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 4,
   },
   locationText: {

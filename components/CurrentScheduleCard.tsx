@@ -35,7 +35,7 @@ export function CurrentScheduleCard({ title, startTime, endTime, location, label
         <Text style={[styles.labelText, { color: surfaceColor }]}>{label}</Text>
       </View>
 
-      <Text style={[styles.title, { color: surfaceColor }]} numberOfLines={1}>
+      <Text style={[styles.title, { color: surfaceColor }]}>
         {title}
       </Text>
 
@@ -46,7 +46,7 @@ export function CurrentScheduleCard({ title, startTime, endTime, location, label
         </Text>
         <Text style={[styles.dot, { color: surfaceColor }]}>•</Text>
         <IcPin width={14} height={14} color={surfaceColor} />
-        <Text style={[styles.metaText, { color: surfaceColor }]} numberOfLines={1}>
+        <Text style={[styles.metaText, styles.locationText, { color: surfaceColor }]}>
           {location}
         </Text>
       </View>
@@ -89,10 +89,14 @@ const styles = StyleSheet.create({
   meta: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 4,
   },
   metaText: {
     ...Typography['body-md'],
+  },
+  locationText: {
+    flexShrink: 1,
   },
   dot: {
     ...Typography['body-md'],
