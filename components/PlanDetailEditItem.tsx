@@ -302,10 +302,11 @@ export function PlanDetailEditItem({ item, onSave, onDelete }: Props) {
               value={edit.title}
               onChangeText={(v) => updateEdit({ title: v })}
               onBlur={handleBlur}
+              multiline
               underlineColorAndroid="transparent"
             />
           ) : (
-            <Text style={[styles.titleText, { color: colors.textTitle }]} numberOfLines={1}>
+            <Text style={[styles.titleText, { color: colors.textTitle }]} numberOfLines={isOpen ? undefined : 1}>
               {displayTitle}
             </Text>
           )}
@@ -387,6 +388,7 @@ export function PlanDetailEditItem({ item, onSave, onDelete }: Props) {
                   onBlur={handleBlur}
                   placeholder="위치"
                   placeholderTextColor={colors.textDisabled}
+                  multiline
                   underlineColorAndroid="transparent"
                 />
               </View>
@@ -503,7 +505,7 @@ const styles = StyleSheet.create({
     padding: 0,
     paddingBottom: IOS_UNDERLINE_GAP,
     borderBottomWidth: 1,
-    alignSelf: 'flex-start',
+    alignSelf: 'stretch',
     minWidth: 80,
   },
   divider: {
@@ -531,7 +533,7 @@ const styles = StyleSheet.create({
   },
   locationInput: {
     ...Typography['body-md'],
-    flexShrink: 1,
+    flex: 1,
     minWidth: 80,
     padding: 0,
     paddingBottom: IOS_UNDERLINE_GAP,
@@ -545,7 +547,7 @@ const styles = StyleSheet.create({
     padding: 0,
     paddingBottom: IOS_UNDERLINE_GAP,
     borderBottomWidth: 1,
-    alignSelf: 'flex-start',
+    alignSelf: 'stretch',
     minWidth: 80,
   },
   priceInputSizer: {

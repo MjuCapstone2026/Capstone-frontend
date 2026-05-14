@@ -6,6 +6,9 @@ import IcNavigation from '@/assets/icons/ic_navigation.svg';
 import IcClock from '@/assets/icons/ic_clock.svg';
 import IcPin from '@/assets/icons/ic_pin.svg';
 
+const ICON_TEXT_LINE_HEIGHT = 18;
+const ICON_TOP_OFFSET = -1;
+
 type Props = {
   title: string;
   startTime: string;
@@ -31,24 +34,33 @@ export function CurrentScheduleCard({ title, startTime, endTime, location, label
   return (
     <View style={[styles.card, { backgroundColor: colors.primary }, Elevation[scheme][2]]}>
       <View style={styles.label}>
-        <IcNavigation width={16} height={16} color={surfaceColor} />
+        <View style={styles.labelIconFrame}>
+          <IcNavigation width={16} height={16} color={surfaceColor} />
+        </View>
         <Text style={[styles.labelText, { color: surfaceColor }]}>{label}</Text>
       </View>
 
-      <Text style={[styles.title, { color: surfaceColor }]} numberOfLines={1}>
+      <Text style={[styles.title, { color: surfaceColor }]}>
         {title}
       </Text>
 
       <View style={styles.meta}>
-        <IcClock width={14} height={14} color={surfaceColor} />
-        <Text style={[styles.metaText, { color: surfaceColor }]}>
-          {startTime} ~ {endTime}
-        </Text>
-        <Text style={[styles.dot, { color: surfaceColor }]}>•</Text>
-        <IcPin width={14} height={14} color={surfaceColor} />
-        <Text style={[styles.metaText, { color: surfaceColor }]} numberOfLines={1}>
-          {location}
-        </Text>
+        <View style={styles.metaRow}>
+          <View style={styles.metaIconFrame}>
+            <IcClock width={14} height={14} color={surfaceColor} />
+          </View>
+          <Text style={[styles.metaText, { color: surfaceColor }]}>
+            {startTime} ~ {endTime}
+          </Text>
+        </View>
+        <View style={styles.metaRow}>
+          <View style={styles.metaIconFrame}>
+            <IcPin width={14} height={14} color={surfaceColor} />
+          </View>
+          <Text style={[styles.metaText, { color: surfaceColor }]}>
+            {location}
+          </Text>
+        </View>
       </View>
 
       <Pressable
@@ -77,25 +89,43 @@ const styles = StyleSheet.create({
   },
   label: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 6,
+  },
+  labelIconFrame: {
+    alignItems: 'center',
+    height: ICON_TEXT_LINE_HEIGHT,
+    justifyContent: 'center',
+    marginTop: ICON_TOP_OFFSET,
   },
   labelText: {
     ...Typography['body-md'],
+    includeFontPadding: false,
+    lineHeight: ICON_TEXT_LINE_HEIGHT,
   },
   title: {
     ...Typography['heading-md'],
   },
   meta: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: 4,
+  },
+  metaRow: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    gap: 4,
+  },
+  metaIconFrame: {
+    alignItems: 'center',
+    height: ICON_TEXT_LINE_HEIGHT,
+    justifyContent: 'center',
+    marginTop: ICON_TOP_OFFSET,
   },
   metaText: {
     ...Typography['body-md'],
-  },
-  dot: {
-    ...Typography['body-md'],
+    flex: 1,
+    flexShrink: 1,
+    includeFontPadding: false,
+    lineHeight: ICON_TEXT_LINE_HEIGHT,
   },
   button: {
     flexDirection: 'row',

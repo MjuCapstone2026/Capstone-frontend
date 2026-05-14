@@ -40,7 +40,7 @@ export function ItineraryOverviewCard({
 
   return (
     <View style={[styles.card, { backgroundColor: bgColor, paddingTop: 24 + insets.top }, Elevation[scheme][1]]}>
-      <Text style={[styles.title, { color: contentColor }]} numberOfLines={1}>
+      <Text style={[styles.title, { color: contentColor }]}>
         {title}
       </Text>
 

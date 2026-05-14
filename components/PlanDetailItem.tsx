@@ -201,7 +201,7 @@ export function PlanDetailItem({
             ]}
           >
             <View style={[styles.header, isOpen && styles.openHeader]}>
-              <Text style={[styles.title, { color: colors.textTitle }]} numberOfLines={2}>
+              <Text style={[styles.title, { color: colors.textTitle }]} numberOfLines={isOpen ? undefined : 2}>
                 {title}
               </Text>
               <Animated.View style={animatedChevron}>
@@ -214,19 +214,19 @@ export function PlanDetailItem({
                 <View style={[styles.divider, { backgroundColor: colors.divider }]} />
                 <View style={styles.expanded}>
                   {reservationSummary ? (
-                    <Text style={[styles.detailTitle, { color: colors.textTitle }]} numberOfLines={2}>
+                    <Text style={[styles.detailTitle, { color: colors.textTitle }]}>
                       {reservationSummary}
                     </Text>
                   ) : null}
                   {memo ? (
-                    <Text style={[styles.detailTitle, { color: colors.textTitle }]} numberOfLines={3}>
+                    <Text style={[styles.detailTitle, { color: colors.textTitle }]}>
                       {memo}
                     </Text>
                   ) : null}
                   {detailLocation ? (
                     <View style={styles.iconRow}>
                       <DetailIcon width={16} height={16} color={colors.textCaption} />
-                      <Text style={[styles.detailText, { color: colors.textCaption }]} numberOfLines={1}>
+                      <Text style={[styles.detailText, { color: colors.textCaption }]}>
                         {detailLocation}
                       </Text>
                     </View>
