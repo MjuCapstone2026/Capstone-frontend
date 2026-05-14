@@ -10,6 +10,7 @@ import Toast from 'react-native-toast-message';
 import { useTheme } from '@/hooks/useTheme';
 import { useApi } from '@/hooks/useApi';
 import { getErrorMessage, getDeleteChatRoomErrorMessage } from '@/utils/getErrorMessage';
+import { formatKoreanTime } from '@/utils/dateTime';
 import { formatTripDestinations, toTripInfoInitialValues } from '@/utils/tripInfo';
 import { queryKeys, STALE_TIMES, GC_TIMES } from '@/constants/queryKeys';
 import { AlertMessages } from '@/constants/alerts';
@@ -67,12 +68,7 @@ function attachDoneResultToAssistantMessage(done: SendChatMessageDone): DisplayM
 }
 
 function formatTimestamp(isoString: string): string {
-  const date = new Date(isoString);
-  const hours = date.getHours();
-  const minutes = date.getMinutes();
-  const period = hours < 12 ? '오전' : '오후';
-  const displayHours = hours % 12 || 12;
-  return `${period} ${displayHours}:${String(minutes).padStart(2, '0')}`;
+  return formatKoreanTime(isoString);
 }
 
 function mergeDoneItinerary(old: ItineraryDetail | undefined, itinerary: DoneItinerary) {
