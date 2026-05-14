@@ -13,6 +13,7 @@ import { queryKeys, STALE_TIMES } from '@/constants/queryKeys';
 import { BOTTOM_NAVIGATION } from '@/constants/layout';
 import { Typography } from '@/constants/theme';
 import { getErrorMessage } from '@/utils/getErrorMessage';
+import { formatTripDestinationCities } from '@/utils/tripInfo';
 import { TravelListTabBar } from '@/components/TravelListTabBar';
 import { TravelPlanCard } from '@/components/TravelPlanCard';
 import { ReservationCard } from '@/components/ReservationCard';
@@ -22,21 +23,6 @@ import { ReservationTypeTab } from '@/components/ReservationTypeTab';
 type Tab = 'itinerary' | 'reservation';
 type ResType = 'all' | 'flight' | 'accommodation';
 type ResStatus = 'all' | 'confirmed' | 'changed' | 'cancelled';
-
-type LocalFlightDetail = {
-  airline: string;
-  flight_no: string;
-  departure: { airport: string; datetime: string };
-  arrival: { airport: string; datetime: string };
-};
-
-type LocalAccommodationDetail = {
-  hotel_name: string;
-  room_type: string;
-  check_in: string;
-  check_out: string;
-  guests: number;
-};
 
 function formatDate(dateStr: string) {
   return dateStr.replace(/-/g, '.');
@@ -183,7 +169,7 @@ export function PlanListScreen() {
                 key={item.itineraryId}
                 title={item.name}
                 startDate={formatDate(item.startDate)}
-                destination={item.destination}
+                destination={formatTripDestinationCities(item.destinations)}
                 duration={formatDuration(item.totalDays)}
                 status={item.status === 'completed' ? 'completed' : 'upcoming'}
                 onPress={() =>
@@ -229,33 +215,32 @@ export function PlanListScreen() {
                 };
 
                 if (r.type === 'flight') {
-                  const d = r.detail as LocalFlightDetail;
+                  const d = r.detail;
                   return (
                     <ReservationCard
                       key={r.reservationId}
                       type="flight"
-                      departureCode={d.departure.airport}
-                      arrivalCode={d.arrival.airport}
-                      flightNumber={d.flight_no}
-                      duration={calcFlightDuration(d.departure.datetime, d.arrival.datetime)}
-                      departureTime={formatTime(d.departure.datetime)}
-                      arrivalTime={formatTime(d.arrival.datetime)}
-                      date={formatDateShort(d.departure.datetime)}
+                      departureCode={d.departure}
+                      arrivalCode={d.arrival}
+                      duration={calcFlightDuration(d.departing_at, d.arriving_at)}
+                      departureTime={formatTime(d.departing_at)}
+                      arrivalTime={formatTime(d.arriving_at)}
+                      date={formatDateShort(d.departing_at)}
                       airline={d.airline}
                       {...common}
                     />
                   );
                 }
 
-                const d = r.detail as LocalAccommodationDetail;
+                const d = r.detail;
                 return (
                   <ReservationCard
                     key={r.reservationId}
                     type="lodging"
-                    hotelName={d.hotel_name}
+                    hotelName={d.name}
                     checkInDate={d.check_in}
                     checkOutDate={d.check_out}
-                    roomType={d.room_type}
+                    roomType={`${d.rooms}실`}
                     guests={d.guests}
                     {...common}
                   />

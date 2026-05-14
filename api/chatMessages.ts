@@ -62,19 +62,40 @@ export type DoneChange = {
   adultCount: number;
   childCount: number;
   childAges: number[];
+  destinations?: { city: string; start_date: string; end_date: string }[];
   updatedAt: string;
 };
 
-export type DoneReservation = {
+export type AccommodationDetail = {
+  name: string;
+  rooms: number;
+  guests: number;
+  check_in: string;
+  check_out: string;
+};
+
+export type FlightDetail = {
+  airline: string;
+  departure: string;
+  arrival: string;
+  departing_at: string;
+  arriving_at: string;
+  stops: number;
+};
+
+type ReservationBase = {
   reservationId: string;
-  type: string;
-  status: string;
-  bookingUrl: string;
-  detail: Record<string, unknown>;
-  totalPrice: number;
+  status: 'confirmed' | 'changed' | 'cancelled';
+  bookingUrl?: string;
+  externalRefId?: string;
+  totalPrice: number | null;
   currency: string;
   reservedAt: string;
 };
+
+export type DoneReservation =
+  | (ReservationBase & { type: 'accommodation'; detail: AccommodationDetail })
+  | (ReservationBase & { type: 'flight'; detail: FlightDetail });
 
 export type DoneCancel = {
   reservationId: string;
@@ -87,6 +108,17 @@ export type ChatMessageActionResult =
   | { type: 'change'; data: DoneChange }
   | { type: 'reservation'; data: DoneReservation }
   | { type: 'cancel'; data: DoneCancel };
+
+export function parseServerActionResult(raw: unknown): ChatMessageActionResult | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const obj = raw as Record<string, unknown>;
+  if (typeof obj.type === 'string' && obj.data != null) return raw as ChatMessageActionResult;
+  // 서버 GET 응답의 raw 형태 — 고유 필드로 타입 감지, 나머지는 change
+  if ('dayPlans' in obj) return { type: 'itinerary', data: obj as unknown as DoneItinerary };
+  if ('cancelledAt' in obj) return { type: 'cancel', data: obj as unknown as DoneCancel };
+  if ('totalPrice' in obj) return { type: 'reservation', data: obj as unknown as DoneReservation };
+  return { type: 'change', data: obj as unknown as DoneChange };
+}
 
 export type SendChatMessageDone = {
   userMessage: ChatMessage;
@@ -162,12 +194,14 @@ const handleSseMessage = (message: string, handlers: ChatMessageStreamHandlers):
   }
 
   if (normalizedEvent === 'chunk') {
-    handlers.onChunk?.(JSON.parse(data) as SendChatMessageChunk);
+    const chunk = JSON.parse(data) as SendChatMessageChunk;
+    handlers.onChunk?.(chunk);
     return false;
   }
 
   if (normalizedEvent === 'done') {
-    handlers.onDone?.(JSON.parse(data) as SendChatMessageDone);
+    const done = JSON.parse(data) as SendChatMessageDone;
+    handlers.onDone?.(done);
     return true;
   }
 
@@ -192,7 +226,8 @@ const sendChatMessage = async (
   });
 
   if (!response.ok) {
-    throw new ChatMessageStreamError(response.status, await response.text());
+    const errorBody = await response.text();
+    throw new ChatMessageStreamError(response.status, errorBody);
   }
 
   return response;

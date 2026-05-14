@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@clerk/clerk-expo';
 import axios from 'axios';
@@ -9,14 +10,15 @@ import Toast from 'react-native-toast-message';
 import { useTheme } from '@/hooks/useTheme';
 import { useApi } from '@/hooks/useApi';
 import { getErrorMessage, getDeleteChatRoomErrorMessage } from '@/utils/getErrorMessage';
-import { formatDateOnly } from '@/utils/dateOnly';
-import { toTripInfoInitialValues } from '@/utils/tripInfo';
+import { formatKoreanTime } from '@/utils/dateTime';
+import { formatTripDestinations, toTripInfoInitialValues } from '@/utils/tripInfo';
 import { queryKeys, STALE_TIMES, GC_TIMES } from '@/constants/queryKeys';
 import { AlertMessages } from '@/constants/alerts';
 import { getChatRooms, getChatRoom, deleteChatRoom, updateChatRoomName } from '@/api/chatRooms';
 import {
   getChatMessages,
   sendChatMessageStream,
+  parseServerActionResult,
   ChatMessage,
   ChatMessageActionResult,
   ChatMessagesResponse,
@@ -37,9 +39,13 @@ import { BOTTOM_NAVIGATION, CHAT_HEADER_HEIGHT } from '@/constants/layout';
 
 type Props = { chatId: string };
 type DisplayMessage = ChatMessage;
-// TODO: 백엔드 GET 채팅 메시지 응답에 assistant actionResult가 포함되면 제거.
-type MessageResultsCache = Record<string, ChatMessageActionResult>;
 
+type PendingChatState = {
+  isSending: boolean;
+  userMessage: ChatMessage;
+  assistantMessage?: ChatMessage;
+  lastChunkAt?: number;
+};
 
 function toActionResult(done: {
   itinerary?: SendChatMessageDone['itinerary'];
@@ -62,12 +68,7 @@ function attachDoneResultToAssistantMessage(done: SendChatMessageDone): DisplayM
 }
 
 function formatTimestamp(isoString: string): string {
-  const date = new Date(isoString);
-  const hours = date.getHours();
-  const minutes = date.getMinutes();
-  const period = hours < 12 ? '오전' : '오후';
-  const displayHours = hours % 12 || 12;
-  return `${period} ${displayHours}:${String(minutes).padStart(2, '0')}`;
+  return formatKoreanTime(isoString);
 }
 
 function mergeDoneItinerary(old: ItineraryDetail | undefined, itinerary: DoneItinerary) {
@@ -89,7 +90,7 @@ function mergeDoneItinerary(old: ItineraryDetail | undefined, itinerary: DoneIti
           place: plan.place,
           note: plan.note,
           status: plan.status,
-          price: plan.cost?.amount_krw ?? plan.cost?.amount ?? null,
+          cost: plan.cost ?? null,
         })),
       ]),
     ),
@@ -103,6 +104,8 @@ export function ChatRoomScreen({ chatId }: Props) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const scrollViewRef = useRef<ScrollView>(null);
+  const focusedRef = useRef(false);
+  const roomNameRef = useRef('채팅방');
   const insets = useSafeAreaInsets();
 
   const [drawerVisible, setDrawerVisible] = useState(false);
@@ -114,11 +117,8 @@ export function ChatRoomScreen({ chatId }: Props) {
     top: CHAT_HEADER_HEIGHT + insets.top - 8,
     right: 16,
   });
-  const [isSending, setIsSending] = useState(false);
-  const [streamingMessages, setStreamingMessages] = useState<DisplayMessage[]>([]);
-  const [confirmedLocalMessages, setConfirmedLocalMessages] = useState<DisplayMessage[]>([]);
-  const [messageItineraries, setMessageItineraries] = useState<Record<string, DoneItinerary>>({});
   const [thinkingDotCount, setThinkingDotCount] = useState(1);
+  const [showResultPreparing, setShowResultPreparing] = useState(false);
   const [selectedChatId, setSelectedChatId] = useState(chatId);
   const deletedChatIdsRef = useRef(new Set<string>());
   const pendingDrawerActionRef = useRef<(() => void) | null>(null);
@@ -152,12 +152,11 @@ export function ChatRoomScreen({ chatId }: Props) {
     gcTime: GC_TIMES.chatRooms.messages,
   });
 
-  const { data: messageResults = {} } = useQuery({
-    queryKey: queryKeys.chatRooms.messageResults(chatId),
-    queryFn: () =>
-      queryClient.getQueryData<MessageResultsCache>(queryKeys.chatRooms.messageResults(chatId)) ?? {},
+  const { data: pendingChat = null } = useQuery({
+    queryKey: queryKeys.chatRooms.pending(chatId),
+    queryFn: () => null as PendingChatState | null,
     staleTime: Infinity,
-    gcTime: GC_TIMES.chatRooms.messages,
+    gcTime: GC_TIMES.chatRooms.pending,
   });
 
   const { data: chatRoomsData } = useQuery({
@@ -190,6 +189,22 @@ export function ChatRoomScreen({ chatId }: Props) {
     [itineraryDetail],
   );
 
+  useFocusEffect(
+    useCallback(() => {
+      focusedRef.current = true;
+      return () => {
+        focusedRef.current = false;
+      };
+    }, []),
+  );
+
+  useEffect(() => {
+    roomNameRef.current =
+      roomData?.name ??
+      chatRoomsData?.rooms.find((room) => room.roomId === chatId)?.name ??
+      '채팅방';
+  }, [chatId, chatRoomsData, roomData]);
+
   useEffect(() => {
     if (!roomError) return;
     if (deletedChatIdsRef.current.has(chatId)) return;
@@ -205,10 +220,7 @@ export function ChatRoomScreen({ chatId }: Props) {
   }, [chatId, messagesError, roomData]);
 
   useEffect(() => {
-    const hasAssistantStreaming = streamingMessages.some(
-      (msg) => msg.role === 'assistant' && msg.content.length > 0,
-    );
-    if (!isSending || hasAssistantStreaming) {
+    if (!pendingChat?.isSending) {
       setThinkingDotCount(1);
       return;
     }
@@ -218,7 +230,21 @@ export function ChatRoomScreen({ chatId }: Props) {
     }, 450);
 
     return () => clearInterval(intervalId);
-  }, [isSending, streamingMessages]);
+  }, [pendingChat]);
+
+  useEffect(() => {
+    if (!pendingChat?.isSending || !pendingChat.assistantMessage?.content || !pendingChat.lastChunkAt) {
+      setShowResultPreparing(false);
+      return;
+    }
+
+    setShowResultPreparing(false);
+    const timerId = setTimeout(() => {
+      setShowResultPreparing(true);
+    }, 700);
+
+    return () => clearTimeout(timerId);
+  }, [pendingChat?.isSending, pendingChat?.assistantMessage?.content, pendingChat?.lastChunkAt]);
 
   const deleteMutation = useMutation({
     mutationFn: (roomId: string) => authRequest((token) => deleteChatRoom(token, roomId)),
@@ -228,10 +254,10 @@ export function ChatRoomScreen({ chatId }: Props) {
         queryKeys.chatRooms.all,
         (old) => old ? { ...old, rooms: old.rooms.filter((room) => room.roomId !== roomId) } : old,
       );
+      queryClient.removeQueries({ queryKey: queryKeys.chatRooms.pending(roomId) });
       if (roomId !== chatId) {
         queryClient.removeQueries({ queryKey: queryKeys.chatRooms.detail(roomId) });
         queryClient.removeQueries({ queryKey: queryKeys.chatRooms.messages(roomId) });
-        queryClient.removeQueries({ queryKey: queryKeys.chatRooms.messageResults(roomId) });
       }
       queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.itineraries.all });
@@ -276,8 +302,7 @@ export function ChatRoomScreen({ chatId }: Props) {
     mutationFn: ({ info, itineraryId }: { info: TripInfo; itineraryId: string }) =>
       authRequest((token) =>
         updateItinerary(token, itineraryId, {
-          startDate: formatDateOnly(info.startDate),
-          endDate: formatDateOnly(info.endDate),
+          destinations: formatTripDestinations(info.destinations),
           budget: info.budget * 10000,
           adultCount: info.adults,
           childCount: info.children,
@@ -296,18 +321,20 @@ export function ChatRoomScreen({ chatId }: Props) {
 
   const handleSend = useCallback(
     async (message: string) => {
-      if (isSending) return;
+      const pendingKey = queryKeys.chatRooms.pending(chatId);
+      const currentPending = queryClient.getQueryData<PendingChatState>(pendingKey);
+      if (currentPending?.isSending) return;
 
-      setIsSending(true);
       const now = new Date().toISOString();
-      setStreamingMessages([
-        {
+      queryClient.setQueryData<PendingChatState>(pendingKey, {
+        isSending: true,
+        userMessage: {
           messageId: '__pending_user',
           role: 'user',
           content: message,
           createdAt: now,
         },
-      ]);
+      });
 
       try {
         const token = await getToken();
@@ -315,62 +342,30 @@ export function ChatRoomScreen({ chatId }: Props) {
 
         await sendChatMessageStream(token, chatId, { content: message }, {
           onChunk: (chunk) => {
-            setStreamingMessages((prev) => {
-              const assistant = prev.find((msg) => msg.messageId === '__streaming_ai');
-              if (assistant) {
-                return prev.map((msg) =>
-                  msg.messageId === '__streaming_ai'
-                    ? { ...msg, content: msg.content + chunk.content }
-                    : msg,
-                );
-              }
-
-              return [
-                ...prev,
-                {
+            queryClient.setQueryData<PendingChatState>(pendingKey, (old) => {
+              if (!old) return old;
+              const assistantMessage = old.assistantMessage
+                ? { ...old.assistantMessage, content: old.assistantMessage.content + chunk.content }
+                : {
                   messageId: '__streaming_ai',
-                  role: 'assistant',
+                  role: 'assistant' as const,
                   content: chunk.content,
                   createdAt: new Date().toISOString(),
-                },
-              ];
+                };
+
+              return { ...old, assistantMessage, lastChunkAt: Date.now() };
             });
             setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: false }), 0);
           },
           onDone: (done) => {
             const assistantMessage = attachDoneResultToAssistantMessage(done);
-            const assistantResult = assistantMessage.actionResult;
-
-            if (assistantResult) {
-              queryClient.setQueryData<MessageResultsCache>(
-                queryKeys.chatRooms.messageResults(chatId),
-                (old) => ({
-                  ...(old ?? {}),
-                  [done.assistantMessage.messageId]: assistantResult,
-                }),
-              );
-            }
 
             if (done.itinerary) {
-              setMessageItineraries((prev) => ({
-                ...prev,
-                [done.assistantMessage.messageId]: done.itinerary!,
-              }));
               queryClient.setQueryData<ItineraryDetail>(
                 queryKeys.itineraries.detail(done.itinerary.itineraryId),
                 (old) => mergeDoneItinerary(old, done.itinerary!),
               );
             }
-
-            setConfirmedLocalMessages((prev) => {
-              const nextMessages: DisplayMessage[] = [
-                done.userMessage,
-                assistantMessage,
-              ];
-              const nextIds = new Set(nextMessages.map((msg) => msg.messageId));
-              return [...prev.filter((msg) => !nextIds.has(msg.messageId)), ...nextMessages];
-            });
-            setStreamingMessages([]);
 
             queryClient.setQueryData<ChatMessagesResponse>(
               queryKeys.chatRooms.messages(chatId),
@@ -394,15 +389,12 @@ export function ChatRoomScreen({ chatId }: Props) {
                 };
               },
             );
+            queryClient.setQueryData<PendingChatState | null>(pendingKey, null);
 
-            queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.messages(chatId) });
-            queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.all });
+            queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.all, exact: true });
 
             if (done.itinerary) {
               queryClient.invalidateQueries({ queryKey: queryKeys.itineraries.all });
-              queryClient.invalidateQueries({
-                queryKey: queryKeys.itineraries.detail(done.itinerary.itineraryId),
-              });
             }
 
             if (done.change) {
@@ -415,16 +407,22 @@ export function ChatRoomScreen({ chatId }: Props) {
             if (done.reservation || done.cancel) {
               queryClient.invalidateQueries({ queryKey: queryKeys.reservations.all });
             }
+
+            if (!focusedRef.current) {
+              Toast.show({
+                type: 'success',
+                text1: 'AI 응답이 완료되었습니다.',
+                text2: `${roomNameRef.current}에서 새 응답이 도착했습니다.`,
+              });
+            }
           },
         });
       } catch (e) {
-        setStreamingMessages([]);
+        queryClient.setQueryData<PendingChatState | null>(pendingKey, null);
         Toast.show({ type: 'error', text1: getErrorMessage(e) });
-      } finally {
-        setIsSending(false);
       }
     },
-    [chatId, getToken, isSending, queryClient],
+    [chatId, getToken, queryClient],
   );
 
   const displayMessages = useMemo(() => {
@@ -432,20 +430,14 @@ export function ChatRoomScreen({ chatId }: Props) {
       .reverse()
       .map((message) => ({
         ...message,
-        actionResult:
-          message.actionResult ??
-          messageResults[message.messageId] ??
-          (messageItineraries[message.messageId]
-            ? { type: 'itinerary', data: messageItineraries[message.messageId] }
-            : undefined),
+        actionResult: parseServerActionResult(message.actionResult),
       }));
-    const serverMessageIds = new Set(serverMessages.map((message) => message.messageId));
-    const localConfirmedMessages = confirmedLocalMessages.filter(
-      (message) => !serverMessageIds.has(message.messageId),
-    );
+    const pendingMessages = pendingChat
+      ? [pendingChat.userMessage, pendingChat.assistantMessage].filter(Boolean) as DisplayMessage[]
+      : [];
 
-    return [...serverMessages, ...localConfirmedMessages, ...streamingMessages];
-  }, [confirmedLocalMessages, messageItineraries, messageResults, messagesData, streamingMessages]);
+    return [...serverMessages, ...pendingMessages];
+  }, [messagesData, pendingChat]);
 
   useEffect(() => {
     if (messagesLoading) return;
@@ -511,11 +503,20 @@ export function ChatRoomScreen({ chatId }: Props) {
             ))
           )}
 
-          {isSending && !streamingMessages.some((msg) => msg.role === 'assistant' && msg.content.length > 0) && (
+          {pendingChat?.isSending && !pendingChat.assistantMessage?.content && (
             <ChatBubble
               variant="ai"
               message={`AI가 열심히 생각 중입니다${'.'.repeat(thinkingDotCount)}`}
               timestamp={formatTimestamp(new Date().toISOString())}
+              hideTimestamp
+            />
+          )}
+          {pendingChat?.isSending && pendingChat.assistantMessage?.content && showResultPreparing && (
+            <ChatBubble
+              variant="ai"
+              message={`보기 좋게 정리하는 중입니다${'.'.repeat(thinkingDotCount)}`}
+              timestamp={formatTimestamp(new Date().toISOString())}
+              hideTimestamp
             />
           )}
         </ScrollView>
@@ -523,6 +524,7 @@ export function ChatRoomScreen({ chatId }: Props) {
         <TypeMessageWindow
           onSend={handleSend}
           onFocus={() => scrollToLatestMessage(true)}
+          disabled={!!pendingChat?.isSending}
         />
       </KeyboardAvoidingView>
       <View style={{ height: bottomOffset }} />
@@ -558,14 +560,21 @@ export function ChatRoomScreen({ chatId }: Props) {
           closeDrawerThen(() => setEditTripInfoVisible(true));
         }}
         onChatViewPlan={(id) => {
-          closeDrawerThen(() => {
-          // 캐시에서 itineraryId 조회 후 해당 일정으로 이동
-            const cached = queryClient.getQueryData<{ itineraryId?: string }>(
-              queryKeys.chatRooms.detail(String(id)),
-            );
-            if (cached?.itineraryId) {
-              router.push({ pathname: '/plan-list/[id]', params: { id: cached.itineraryId } });
-            } else {
+          closeDrawerThen(async () => {
+            try {
+              const room = await queryClient.fetchQuery({
+                queryKey: queryKeys.chatRooms.detail(String(id)),
+                queryFn: () => authRequest((token) => getChatRoom(token, String(id))),
+                staleTime: STALE_TIMES.chatRooms.detail,
+                gcTime: GC_TIMES.chatRooms.detail,
+              });
+              if (room.itineraryId) {
+                router.push({ pathname: '/plan-list/[id]', params: { id: room.itineraryId } });
+              } else {
+                router.navigate('/plan-list');
+              }
+            } catch (error) {
+              Toast.show({ type: 'error', text1: getErrorMessage(error) });
               router.navigate('/plan-list');
             }
           });

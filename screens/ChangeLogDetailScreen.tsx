@@ -12,6 +12,7 @@ import { BOTTOM_NAVIGATION } from '@/constants/layout';
 import { BorderRadius, Typography } from '@/constants/theme';
 import { getErrorMessage } from '@/utils/getErrorMessage';
 import { getDisplayCost } from '@/utils/itineraryDisplay';
+import { formatTripDestinationCities } from '@/utils/tripInfo';
 import { ItineraryOverviewCard2BeforeEdit } from '@/components/ItineraryOverviewCard2BeforeEdit';
 import { PlanDetailItem } from '@/components/PlanDetailItem';
 
@@ -103,13 +104,14 @@ export function ChangeLogDetailScreen({ itineraryId, logId }: Props) {
   if (!itinerary || !log) return null;
 
   const headerDate = `${itinerary.startDate.replace(/-/g, '.')} - ${itinerary.endDate.replace(/-/g, '.')}`;
+  const headerLocation = formatTripDestinationCities(itinerary.destinations);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.pageBg }]}>
       <ItineraryOverviewCard2BeforeEdit
         title={itinerary.name}
         date={headerDate}
-        location={itinerary.destination}
+        location={headerLocation}
         dayCount={log.totalDays}
         selectedDay={selectedDay}
         onDayPress={setSelectedDay}
@@ -134,7 +136,7 @@ export function ChangeLogDetailScreen({ itineraryId, logId }: Props) {
           <View style={styles.detailList}>
             {activeDayPlans.map((item, index) => {
               const { startTime, endTime } = splitTimeRange(item.time);
-              const { price, currency } = getDisplayCost(item.cost, item.price);
+              const { price, currency } = getDisplayCost(item.cost);
               return (
                 <PlanDetailItem
                   key={`day${selectedDay}-item${index}`}

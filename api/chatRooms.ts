@@ -32,10 +32,14 @@ type ChatRoomDetail = {
   updatedAt: string;
 };
 
+type TripDestinationRequest = {
+  city: string;
+  start_date: string;
+  end_date: string;
+};
+
 type CreateChatRoomRequest = {
-  destination: string;
-  startDate: string;
-  endDate: string;
+  destinations: TripDestinationRequest[];
   budget?: number;
   adultCount: number;
   childCount: number;

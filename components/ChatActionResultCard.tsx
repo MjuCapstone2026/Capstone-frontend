@@ -3,15 +3,30 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '@/hooks/useTheme';
 import { BorderRadius, Elevation, Typography } from '@/constants/theme';
 import { ChatMessageActionResult, DoneItinerary } from '@/api/chatMessages';
+import { formatKoreanDateTime } from '@/utils/dateTime';
 import IcChevronDown from '@/assets/icons/ic_chevron_down.svg';
 
 type Props = {
   result: ChatMessageActionResult;
 };
 
-function formatCurrency(value: number, currency = 'KRW') {
+function formatCurrency(value: number | null | undefined, currency = 'KRW') {
+  if (value == null) return '가격 미정';
   if (currency === 'KRW') return `${Math.round(value).toLocaleString('ko-KR')}원`;
   return `${value.toLocaleString()} ${currency}`;
+}
+
+function formatReservationType(type: string) {
+  if (type === 'flight') return '항공';
+  if (type === 'accommodation') return '숙소';
+  return type;
+}
+
+function formatReservationStatus(status: string) {
+  if (status === 'confirmed') return '확정';
+  if (status === 'changed') return '변경';
+  if (status === 'cancelled') return '취소';
+  return status;
 }
 
 function getTitle(result: ChatMessageActionResult) {
@@ -30,9 +45,9 @@ function getSummary(result: ChatMessageActionResult) {
     return `${result.data.startDate} ~ ${result.data.endDate} · 예산 ${formatCurrency(result.data.budget)}`;
   }
   if (result.type === 'reservation') {
-    return `${result.data.type} · ${result.data.status} · ${formatCurrency(result.data.totalPrice, result.data.currency)}`;
+    return `${formatReservationType(result.data.type)} · ${formatReservationStatus(result.data.status)} · ${formatCurrency(result.data.totalPrice, result.data.currency)}`;
   }
-  return `${result.data.status} · ${result.data.cancelledAt}`;
+  return `${formatReservationStatus(result.data.status)} · ${formatKoreanDateTime(result.data.cancelledAt)}`;
 }
 
 function ItineraryDetail({ itinerary }: { itinerary: DoneItinerary }) {
@@ -57,7 +72,9 @@ function ItineraryDetail({ itinerary }: { itinerary: DoneItinerary }) {
             plans.map((plan, index) => (
               <View key={`${date}-${plan.index ?? index}`} style={styles.planRow}>
                 <View style={styles.planMainRow}>
-                  <Text style={[styles.planMain, { color: colors.textTitle }]}>
+                  <Text
+                    style={[styles.planMain, { color: colors.textTitle }]}
+                  >
                     {plan.time} · {plan.plan_name}
                   </Text>
                   {plan.cost ? (
@@ -96,32 +113,59 @@ function ResultDetail({ result }: { result: ChatMessageActionResult }) {
   }
 
   if (result.type === 'change') {
+    const { startDate, endDate, totalDays, budget, adultCount, childCount, childAges, destinations } = result.data;
+    const destinationText = destinations?.map((d) => d.city).join(', ') ?? '-';
+    const childrenText =
+      childCount === 0
+        ? '없음'
+        : childAges?.length
+          ? `${childCount}명 (만 ${childAges.join(', ')}세)`
+          : `${childCount}명`;
+
     return (
       <View style={styles.detail}>
-        <KeyValueRow label="기간" value={`${result.data.startDate} ~ ${result.data.endDate}`} />
-        <KeyValueRow label="총 일수" value={`${result.data.totalDays}일`} />
-        <KeyValueRow label="예산" value={formatCurrency(result.data.budget)} />
-        <KeyValueRow label="인원" value={`성인 ${result.data.adultCount}명 · 아동 ${result.data.childCount}명`} />
+        <KeyValueRow label="여행지" value={destinationText} />
+        <KeyValueRow label="기간" value={`${startDate} ~ ${endDate}`} />
+        <KeyValueRow label="총 일수" value={`${totalDays}일`} />
+        <KeyValueRow label="예산" value={formatCurrency(budget)} />
+        <KeyValueRow label="성인" value={`${adultCount}명`} />
+        <KeyValueRow label="아동" value={childrenText} />
       </View>
     );
   }
 
   if (result.type === 'reservation') {
+    const { type, status, externalRefId, detail, totalPrice, currency } = result.data;
     return (
       <View style={styles.detail}>
-        <KeyValueRow label="유형" value={result.data.type} />
-        <KeyValueRow label="상태" value={result.data.status} />
-        <KeyValueRow label="금액" value={formatCurrency(result.data.totalPrice, result.data.currency)} />
-        <KeyValueRow label="예약 시간" value={result.data.reservedAt} />
+        <KeyValueRow label="유형" value={formatReservationType(type)} />
+        <KeyValueRow label="상태" value={formatReservationStatus(status)} />
+        {externalRefId ? <KeyValueRow label="예약번호" value={externalRefId} /> : null}
+        {type === 'accommodation' && (
+          <>
+            <KeyValueRow label="숙소명" value={detail.name} />
+            <KeyValueRow label="체크인" value={detail.check_in} />
+            <KeyValueRow label="체크아웃" value={detail.check_out} />
+            <KeyValueRow label="객실/인원" value={`${detail.rooms}실 · ${detail.guests}명`} />
+          </>
+        )}
+        {type === 'flight' && (
+          <>
+            <KeyValueRow label="항공사" value={detail.airline} />
+            <KeyValueRow label="출발" value={`${detail.departure} · ${formatKoreanDateTime(detail.departing_at)}`} />
+            <KeyValueRow label="도착" value={`${detail.arrival} · ${formatKoreanDateTime(detail.arriving_at)}`} />
+            <KeyValueRow label="경유" value={detail.stops === 0 ? '직항' : `${detail.stops}회`} />
+          </>
+        )}
+        <KeyValueRow label="금액" value={formatCurrency(totalPrice, currency)} />
       </View>
     );
   }
 
   return (
     <View style={styles.detail}>
-      <KeyValueRow label="예약 ID" value={result.data.reservationId} />
-      <KeyValueRow label="상태" value={result.data.status} />
-      <KeyValueRow label="취소 시간" value={result.data.cancelledAt} />
+      <KeyValueRow label="상태" value={formatReservationStatus(result.data.status)} />
+      <KeyValueRow label="취소 시간" value={formatKoreanDateTime(result.data.cancelledAt)} />
     </View>
   );
 }
@@ -219,15 +263,14 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   planMainRow: {
-    alignItems: 'flex-start',
+    alignItems: 'baseline',
     flexDirection: 'row',
     gap: 8,
-    justifyContent: 'space-between',
   },
   planMain: {
     ...Typography['body-md'],
-    lineHeight: undefined,
     flex: 1,
+    minWidth: 0,
   },
   costText: {
     ...Typography['caption'],

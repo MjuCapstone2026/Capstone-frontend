@@ -7,13 +7,14 @@ import { ChatSendButton } from '@/components/ChatSendButton';
 type Props = {
   onSend: (message: string) => void;
   onFocus?: () => void;
+  disabled?: boolean;
 };
 
-export function TypeMessageWindow({ onSend, onFocus }: Props) {
+export function TypeMessageWindow({ onSend, onFocus, disabled = false }: Props) {
   const { colors } = useTheme();
   const [text, setText] = useState('');
 
-  const isActive = text.trim().length > 0;
+  const isActive = text.trim().length > 0 && !disabled;
 
   const handleSend = () => {
     if (!isActive) return;
@@ -42,6 +43,7 @@ export function TypeMessageWindow({ onSend, onFocus }: Props) {
         value={text}
         onChangeText={setText}
         onFocus={onFocus}
+        editable
         returnKeyType="send"
         onSubmitEditing={handleSend}
         blurOnSubmit={false}

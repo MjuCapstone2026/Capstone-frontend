@@ -11,9 +11,10 @@ type Props = {
   variant: Variant;
   message: string;
   timestamp: string;
+  hideTimestamp?: boolean;
 };
 
-export function ChatBubble({ variant, message, timestamp }: Props) {
+export function ChatBubble({ variant, message, timestamp, hideTimestamp = false }: Props) {
   const { colors, scheme } = useTheme();
 
   const isUser = variant === 'user';
@@ -50,7 +51,9 @@ export function ChatBubble({ variant, message, timestamp }: Props) {
         <Text style={[styles.message, { color: colors.textTitle }]}>{message}</Text>
       </View>
 
-      <Text style={[styles.timestamp, { color: colors.textCaption }]}>{timestamp}</Text>
+      {!hideTimestamp && (
+        <Text style={[styles.timestamp, { color: colors.textCaption }]}>{timestamp}</Text>
+      )}
     </View>
   );
 }

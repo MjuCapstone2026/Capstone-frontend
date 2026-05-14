@@ -13,6 +13,7 @@ import { BOTTOM_NAVIGATION } from '@/constants/layout';
 import { BorderRadius, Typography } from '@/constants/theme';
 import { getErrorMessage } from '@/utils/getErrorMessage';
 import { getDisplayCost } from '@/utils/itineraryDisplay';
+import { formatTripDestinationCities } from '@/utils/tripInfo';
 import { ItineraryOverviewCard2Editing } from '@/components/ItineraryOverviewCard2Editing';
 import { PlanDetailEditItem, ScheduleItem } from '@/components/PlanDetailEditItem';
 
@@ -23,7 +24,7 @@ type DayPlanInput = {
   time: string;
   place: string;
   note?: string;
-  price?: number | null;
+  cost?: DayPlanCost | null;
 };
 
 function addDays(dateStr: string, days: number): string {
@@ -65,11 +66,10 @@ function toScheduleItem(
     place: string;
     note: string;
     cost?: DayPlanCost | null;
-    price?: number | null;
   },
 ): ScheduleItem {
   const { startTime, endTime } = splitTimeRange(item.time);
-  const { price } = getDisplayCost(item.cost, item.price);
+  const { price } = getDisplayCost(item.cost);
 
   return {
     id: `${dateKey}-${item.index}`,
@@ -84,12 +84,15 @@ function toScheduleItem(
 }
 
 function toDayPlanInput(item: ScheduleItem): DayPlanInput {
+  const cost = item.type === 'editable' && item.price != null
+    ? { amount: item.price, currency: 'KRW', amount_krw: null }
+    : null;
   return {
     plan_name: item.title,
     time: joinTimeRange(item.startTime, item.endTime),
     place: item.type === 'editable' ? (item.location ?? '') : '',
     note: item.type === 'editable' ? (item.memo ?? undefined) : undefined,
-    price: item.type === 'editable' ? (item.price ?? null) : null,
+    cost,
   };
 }
 
@@ -197,6 +200,7 @@ export function PlanListDetailEditScreen({ id }: Props) {
   if (!itinerary) return null;
 
   const headerDate = `${itinerary.startDate.replace(/-/g, '.')} - ${itinerary.endDate.replace(/-/g, '.')}`;
+  const headerLocation = formatTripDestinationCities(itinerary.destinations);
 
   return (
     <KeyboardAvoidingView
@@ -206,7 +210,7 @@ export function PlanListDetailEditScreen({ id }: Props) {
       <ItineraryOverviewCard2Editing
         title={itinerary.name}
         date={headerDate}
-        location={itinerary.destination}
+        location={headerLocation}
         dayCount={itinerary.totalDays}
         selectedDay={selectedDay}
         onDayPress={setSelectedDay}

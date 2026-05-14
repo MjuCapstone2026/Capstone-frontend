@@ -6,13 +6,19 @@ type Itinerary = {
   itineraryId: string;
   name: string;
   status: 'draft' | 'completed';
-  destination: string;
+  destinations: TripDestination[];
   totalDays: number;
   startDate: string;
 };
 
 type GetItinerariesResponse = {
   itineraries: Itinerary[];
+};
+
+type TripDestination = {
+  city: string;
+  start_date: string;
+  end_date: string;
 };
 
 export type DayPlanItem = {
@@ -23,8 +29,6 @@ export type DayPlanItem = {
   note: string;
   cost?: DayPlanCost | null;
   status: string;
-  /** @deprecated Use cost instead. */
-  price?: number | null;
 };
 
 export type DayPlanCost = {
@@ -37,7 +41,7 @@ export type ItineraryDetail = {
   itineraryId: string;
   name: string;
   status: 'draft' | 'completed';
-  destination: string;
+  destinations: TripDestination[];
   budget: number | null;
   adultCount: number;
   childCount: number;
@@ -56,8 +60,7 @@ export const getItineraries = (token: string) =>
   });
 
 type UpdateItineraryRequest = {
-  startDate?: string;
-  endDate?: string;
+  destinations?: TripDestination[];
   budget?: number | null;
   adultCount?: number;
   childCount?: number;
@@ -87,7 +90,7 @@ type DayPlanItemInput = {
   time: string;
   place: string;
   note?: string;
-  price?: number | null;
+  cost?: DayPlanCost | null;
 };
 
 type UpdateDayPlansRequest = {
@@ -131,8 +134,6 @@ type LogDayPlanItem = {
   note: string;
   cost?: DayPlanCost | null;
   status: string;
-  /** @deprecated Use cost instead. */
-  price?: number | null;
 };
 
 type ItineraryLog = {
