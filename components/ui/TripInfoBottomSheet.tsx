@@ -74,6 +74,7 @@ type CalendarProps = {
   startDate: Date | null;
   endDate: Date | null;
   month: Date;
+  minSelectableDate: Date;
   onDayPress: (day: Date) => void;
   onPrevMonth: () => void;
   onNextMonth: () => void;
@@ -117,6 +118,11 @@ function compareDateOnly(a: Date, b: Date): number {
   const aTime = new Date(a.getFullYear(), a.getMonth(), a.getDate()).getTime();
   const bTime = new Date(b.getFullYear(), b.getMonth(), b.getDate()).getTime();
   return aTime - bTime;
+}
+
+function getTodayDateOnly(): Date {
+  const today = new Date();
+  return new Date(today.getFullYear(), today.getMonth(), today.getDate());
 }
 
 function isBetween(date: Date, start: Date, end: Date): boolean {
@@ -178,7 +184,7 @@ function areSameDestinations(a: TripDestinationDraft[], b: TripDestinationDraft[
   ));
 }
 
-function Calendar({ startDate, endDate, month, onDayPress, onPrevMonth, onNextMonth }: CalendarProps) {
+function Calendar({ startDate, endDate, month, minSelectableDate, onDayPress, onPrevMonth, onNextMonth }: CalendarProps) {
   const { colors, scheme } = useTheme();
   const year = month.getFullYear();
   const mon = month.getMonth();
@@ -245,6 +251,7 @@ function Calendar({ startDate, endDate, month, onDayPress, onPrevMonth, onNextMo
             const isEnd = !!endDate && isSameDay(day, endDate);
             const inRange = !!startDate && !!endDate && isBetween(day, startDate, endDate);
             const isSelected = isStart || isEnd;
+            const isDisabled = compareDateOnly(day, minSelectableDate) < 0 && !isSelected;
             const isFirstRangeDay =
               inRange &&
               !!startDate &&
@@ -257,6 +264,7 @@ function Calendar({ startDate, endDate, month, onDayPress, onPrevMonth, onNextMo
             return (
               <Pressable
                 key={dayIndex}
+                disabled={isDisabled}
                 onPress={() => onDayPress(day)}
                 style={styles.calendarCell}
               >
@@ -276,10 +284,15 @@ function Calendar({ startDate, endDate, month, onDayPress, onPrevMonth, onNextMo
                       style={[
                         styles.calendarDay,
                         isSelected && { backgroundColor: colors.primary },
-                        pressed && !isSelected && { backgroundColor: colors.pressOverlay },
+                        pressed && !isSelected && !isDisabled && { backgroundColor: colors.pressOverlay },
                       ]}
                     >
-                      <Text style={[styles.calendarDayText, { color: isSelected ? colors.pageBg : colors.textTitle }]}>
+                      <Text
+                        style={[
+                          styles.calendarDayText,
+                          { color: isSelected ? colors.pageBg : isDisabled ? colors.textDisabled : colors.textTitle },
+                        ]}
+                      >
                         {day.getDate()}
                       </Text>
                     </View>
@@ -604,6 +617,7 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
   const buttonLabel = mode === 'create' ? '채팅방 생성하기' : '수정하기';
   const footerBottom = Math.max(insets.bottom, 16);
   const contentBottomPadding = budgetFocused ? keyboardHeight + footerBottom + 24 : 24;
+  const minSelectableDate = useMemo(() => getTodayDateOnly(), []);
 
   const getDateLabel = (destination: TripDestinationDraft) => {
     if (destination.startDate && destination.endDate) {
@@ -618,6 +632,8 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
   };
 
   const handleDayPress = (index: number, day: Date) => {
+    if (compareDateOnly(day, minSelectableDate) < 0) return;
+
     const selectedDestination = destinations[index];
     if (!selectedDestination) return;
 
@@ -873,6 +889,7 @@ export function TripInfoBottomSheet({ visible, mode, initialValues, roomName, on
                         startDate={destination.startDate}
                         endDate={destination.endDate}
                         month={calendarMonth}
+                        minSelectableDate={minSelectableDate}
                         onDayPress={(day) => handleDayPress(index, day)}
                         onPrevMonth={() => setCalendarMonth(value => new Date(value.getFullYear(), value.getMonth() - 1, 1))}
                         onNextMonth={() => setCalendarMonth(value => new Date(value.getFullYear(), value.getMonth() + 1, 1))}
