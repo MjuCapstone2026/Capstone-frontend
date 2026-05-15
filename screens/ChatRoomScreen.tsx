@@ -36,6 +36,7 @@ import { RenameChatModal } from '@/components/RenameChatModal';
 import { TripInfoBottomSheet, TripInfo } from '@/components/ui/TripInfoBottomSheet';
 import { Alert } from '@/components/ui/Alert';
 import { BOTTOM_NAVIGATION, CHAT_HEADER_HEIGHT } from '@/constants/layout';
+import { Typography } from '@/constants/theme';
 
 type Props = { chatId: string };
 type DisplayMessage = ChatMessage;
@@ -519,6 +520,9 @@ export function ChatRoomScreen({ chatId }: Props) {
               hideTimestamp
             />
           )}
+          <Text style={[styles.aiNotice, { color: colors.textCaption }]}>
+            AI는 실수를 할 수 있습니다. 비용, 위치 등 중요한 정보는 다시 한번 확인해 주세요.
+          </Text>
         </ScrollView>
 
         <TypeMessageWindow
@@ -662,6 +666,13 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   messageList: { flex: 1 },
   messageListContent: { paddingTop: 16, paddingBottom: 8 },
+  aiNotice: {
+    ...Typography['caption'],
+    paddingHorizontal: 16,
+    paddingTop: 0,
+    paddingBottom: 4,
+    textAlign: 'center',
+  },
   loadingIndicator: {
     paddingVertical: 24,
     alignItems: 'center',
