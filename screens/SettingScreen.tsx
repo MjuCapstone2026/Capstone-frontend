@@ -9,12 +9,16 @@ import {
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useAuth, useUser } from '@clerk/clerk-expo';
+import { useQueryClient } from '@tanstack/react-query';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/hooks/useTheme';
+import { useApi } from '@/hooks/useApi';
 import { Alert } from '@/components/ui/Alert';
 import { Typography, BorderRadius } from '@/constants/theme';
 import { AlertMessages } from '@/constants/alerts';
 import { BOTTOM_NAVIGATION } from '@/constants/layout';
+import { deleteUser } from '@/api/auth';
+import { getErrorMessage } from '@/utils/getErrorMessage';
 import IcPrivacy from '@/assets/icons/ic_privacy.svg';
 import IcLogout from '@/assets/icons/ic_logout.svg';
 import IcUserRemove from '@/assets/icons/ic_user_remove.svg';
@@ -30,25 +34,43 @@ export function SettingScreen() {
   const insets = useSafeAreaInsets();
   const { signOut } = useAuth();
   const { user } = useUser();
+  const { authRequest } = useApi();
+  const queryClient = useQueryClient();
 
   const [logoutAlertVisible, setLogoutAlertVisible] = useState(false);
   const [deleteAlertVisible, setDeleteAlertVisible] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   const handleLogoutConfirm = async () => {
     if (isSigningOut) return;
     setLogoutAlertVisible(false);
     try {
       setIsSigningOut(true);
+      queryClient.clear();
       await signOut();
+    } catch (e) {
+      console.error(e);
+      Toast.show({ type: 'error', text1: '로그아웃에 실패했어요', text2: '다시 시도해주세요.' });
     } finally {
       setIsSigningOut(false);
     }
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
+    if (isDeletingAccount) return;
     setDeleteAlertVisible(false);
-    Toast.show({ type: 'info', text1: '준비 중인 기능이에요', text2: '곧 회원탈퇴 기능을 지원할 예정이에요.' });
+    try {
+      setIsDeletingAccount(true);
+      await authRequest(deleteUser);
+      queryClient.clear();
+      await signOut();
+    } catch (e) {
+      console.error(e);
+      Toast.show({ type: 'error', text1: getErrorMessage(e) });
+    } finally {
+      setIsDeletingAccount(false);
+    }
   };
 
   const email = user?.emailAddresses[0]?.emailAddress ?? '';
@@ -124,6 +146,7 @@ export function SettingScreen() {
         <Text style={[styles.sectionLabel, { color: colors.textSub }]}>계정</Text>
         <Pressable
           onPress={() => setDeleteAlertVisible(true)}
+          disabled={isDeletingAccount}
           style={[styles.card, { backgroundColor: colors.cardBg, borderColor: colors.divider }]}
         >
           {({ pressed }) => (
@@ -131,11 +154,15 @@ export function SettingScreen() {
               <View style={styles.menuRow}>
                 <IcUserRemove width={20} height={20} color={colors.danger} />
                 <Text style={[styles.menuText, { color: colors.danger }]}>회원탈퇴</Text>
-                <View style={styles.chevronRight}>
-                  <IcChevronDown width={20} height={20} color={colors.textCaption} />
-                </View>
+                {isDeletingAccount ? (
+                  <ActivityIndicator color={colors.danger} />
+                ) : (
+                  <View style={styles.chevronRight}>
+                    <IcChevronDown width={20} height={20} color={colors.textCaption} />
+                  </View>
+                )}
               </View>
-              {pressed && (
+              {pressed && !isDeletingAccount && (
                 <View style={[StyleSheet.absoluteFill, styles.cardOverlay, { backgroundColor: colors.pressOverlay }]} />
               )}
             </>
