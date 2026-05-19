@@ -23,11 +23,16 @@ export function CurrentScheduleCard({ title, startTime, endTime, location, label
   const surfaceColor = scheme === 'dark' ? colors.textTitle : colors.cardBg;
 
   const openNavigation = () => {
-    const encoded = encodeURIComponent(location);
+    const query = location.trim();
+    if (!query) return;
+
+    const encoded = encodeURIComponent(query);
     const kakaoUrl = `kakaomap://search?q=${encoded}`;
-    const googleUrl = `https://maps.google.com/search/?q=${encoded}`;
+    const googleUrl = `https://www.google.com/maps/search/?api=1&query=${encoded}`;
     Linking.canOpenURL(kakaoUrl).then(supported => {
       Linking.openURL(supported ? kakaoUrl : googleUrl);
+    }).catch(() => {
+      Linking.openURL(googleUrl);
     });
   };
 
