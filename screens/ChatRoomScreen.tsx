@@ -47,6 +47,8 @@ type PendingChatState = {
   lastChunkAt?: number;
 };
 
+const RESULT_PREPARING_DELAY_MS = 1500;
+
 function toActionResult(done: {
   itinerary?: SendChatMessageDone['itinerary'];
   change?: SendChatMessageDone['change'];
@@ -241,7 +243,7 @@ export function ChatRoomScreen({ chatId }: Props) {
     setShowResultPreparing(false);
     const timerId = setTimeout(() => {
       setShowResultPreparing(true);
-    }, 700);
+    }, RESULT_PREPARING_DELAY_MS);
 
     return () => clearTimeout(timerId);
   }, [pendingChat?.isSending, pendingChat?.assistantMessage?.content, pendingChat?.lastChunkAt]);
