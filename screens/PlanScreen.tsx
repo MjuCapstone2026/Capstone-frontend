@@ -92,6 +92,7 @@ export function PlanScreen() {
   const queryClient = useQueryClient();
 
   const [selectedDayIndex, setSelectedDayIndex] = useState(0);
+  const [pendingStatusItemKey, setPendingStatusItemKey] = useState<string | null>(null);
 
   useEffect(() => {
     let timerId: ReturnType<typeof setTimeout>;
@@ -171,6 +172,9 @@ export function PlanScreen() {
     },
     onError: (e: unknown) => {
       Toast.show({ type: 'error', text1: getErrorMessage(e) });
+    },
+    onSettled: () => {
+      setPendingStatusItemKey(null);
     },
   });
 
@@ -277,6 +281,7 @@ export function PlanScreen() {
           ) : (
             selectedItems.map((item) => {
               const { startTime, endTime } = parseTimeRange(item.time);
+              const itemKey = `${selectedDateKey}:${item.index}`;
               return (
                 <DayScheduleItem
                   key={item.index}
@@ -286,13 +291,15 @@ export function PlanScreen() {
                   location={item.place}
                   memo={item.note || undefined}
                   status={item.status === 'done' ? 'completed' : 'upcoming'}
-                  onToggle={() =>
+                  disabled={pendingStatusItemKey === itemKey}
+                  onToggle={() => {
+                    setPendingStatusItemKey(itemKey);
                     mutation.mutate({
                       dateKey: selectedDateKey,
                       itemIndex: item.index,
                       newStatus: item.status === 'done' ? 'todo' : 'done',
-                    })
-                  }
+                    });
+                  }}
                 />
               );
             })
