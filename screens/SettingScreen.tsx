@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -17,6 +18,7 @@ import { Alert } from '@/components/ui/Alert';
 import { Typography, BorderRadius } from '@/constants/theme';
 import { AlertMessages } from '@/constants/alerts';
 import { BOTTOM_NAVIGATION } from '@/constants/layout';
+import { PRIVACY_PREAMBLE, PRIVACY_EFFECTIVE_DATE, PRIVACY_SECTIONS } from '@/constants/privacyPolicy';
 import { deleteUser } from '@/api/auth';
 import { getErrorMessage } from '@/utils/getErrorMessage';
 import IcPrivacy from '@/assets/icons/ic_privacy.svg';
@@ -39,6 +41,7 @@ export function SettingScreen() {
 
   const [logoutAlertVisible, setLogoutAlertVisible] = useState(false);
   const [deleteAlertVisible, setDeleteAlertVisible] = useState(false);
+  const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
@@ -98,6 +101,7 @@ export function SettingScreen() {
         {/* 개인정보 */}
         <Text style={[styles.sectionLabel, { color: colors.textSub }]}>개인정보</Text>
         <Pressable
+          onPress={() => setPrivacyModalVisible(true)}
           style={[styles.card, { backgroundColor: colors.cardBg, borderColor: colors.divider }]}
         >
           {({ pressed }) => (
@@ -185,9 +189,96 @@ export function SettingScreen() {
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeleteAlertVisible(false)}
       />
+
+      <Modal
+        visible={privacyModalVisible}
+        animationType="slide"
+        onRequestClose={() => setPrivacyModalVisible(false)}
+      >
+        <PrivacyPolicyContent onClose={() => setPrivacyModalVisible(false)} />
+      </Modal>
     </>
   );
 }
+
+function PrivacyPolicyContent({ onClose }: { onClose: () => void }) {
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+
+  return (
+    <ScrollView
+      style={[privacyStyles.container, { backgroundColor: colors.pageBg }]}
+      contentContainerStyle={[privacyStyles.content, { paddingBottom: insets.bottom + 32 }]}
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={[privacyStyles.header, { paddingTop: insets.top + 16 }]}>
+        <Pressable onPress={onClose} hitSlop={12} style={privacyStyles.backButton}>
+          {({ pressed }) => (
+            <IcChevronDown
+              width={24}
+              height={24}
+              color={pressed ? colors.textCaption : colors.textTitle}
+              style={privacyStyles.backIcon}
+            />
+          )}
+        </Pressable>
+        <Text style={[privacyStyles.pageTitle, { color: colors.textTitle }]}>개인정보 처리방침</Text>
+      </View>
+
+      <Text style={[privacyStyles.preamble, { color: colors.textSub }]}>{PRIVACY_PREAMBLE}</Text>
+      <Text style={[privacyStyles.effectiveDate, { color: colors.textCaption }]}>{PRIVACY_EFFECTIVE_DATE}</Text>
+
+      {PRIVACY_SECTIONS.map((section) => (
+        <View key={section.title} style={privacyStyles.section}>
+          <Text style={[privacyStyles.sectionTitle, { color: colors.textTitle }]}>{section.title}</Text>
+          <Text style={[privacyStyles.sectionBody, { color: colors.textSub }]}>{section.body}</Text>
+        </View>
+      ))}
+    </ScrollView>
+  );
+}
+
+const privacyStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  content: {
+    paddingHorizontal: 20,
+    gap: 20,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  backButton: {
+    padding: 4,
+  },
+  backIcon: {
+    transform: [{ rotate: '90deg' }],
+  },
+  pageTitle: {
+    ...Typography['heading-lg'],
+  },
+  preamble: {
+    ...Typography['body-md'],
+    lineHeight: 22,
+  },
+  effectiveDate: {
+    ...Typography['caption'],
+    marginTop: -12,
+  },
+  section: {
+    gap: 8,
+  },
+  sectionTitle: {
+    ...Typography['body-lg'],
+  },
+  sectionBody: {
+    ...Typography['body-md'],
+    lineHeight: 22,
+  },
+});
 
 const styles = StyleSheet.create({
   container: {
