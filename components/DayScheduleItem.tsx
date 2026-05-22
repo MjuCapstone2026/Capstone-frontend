@@ -19,9 +19,10 @@ type Props = {
   memo?: string;
   status: Status;
   onToggle: () => void;
+  disabled?: boolean;
 };
 
-export function DayScheduleItem({ title, startTime, endTime, location, memo, status, onToggle }: Props) {
+export function DayScheduleItem({ title, startTime, endTime, location, memo, status, onToggle, disabled = false }: Props) {
   const { colors, scheme } = useTheme();
 
   const isCompleted = status === 'completed';
@@ -44,7 +45,7 @@ export function DayScheduleItem({ title, startTime, endTime, location, memo, sta
           <ScheduleStatusBadge status={badgeStatus} />
         </View>
         <View style={styles.spacer} />
-        <CheckButton checked={isCompleted} onToggle={onToggle} />
+        <CheckButton checked={isCompleted} onToggle={onToggle} disabled={disabled} />
       </View>
 
       <Text style={[styles.title, { color: colors.textTitle }]}>
