@@ -174,6 +174,7 @@ export function SettingScreen() {
         </Pressable>
 
         <Text style={[styles.versionText, { color: colors.textCaption }]}>버전 v1.0.0</Text>
+        <Text style={[styles.copyrightText, { color: colors.textCaption }]}>© 2026 Team 여울. All rights reserved</Text>
       </ScrollView>
 
       <Alert
@@ -337,5 +338,9 @@ const styles = StyleSheet.create({
     ...Typography['caption'],
     textAlign: 'center',
     marginTop: 16,
+  },
+  copyrightText: {
+    ...Typography['caption'],
+    textAlign: 'center',
   },
 });
